@@ -388,13 +388,7 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition }: Sear
         overscrollBehavior: 'contain', 
         backgroundColor: shouldPositionBelow ? 'transparent' : 'rgba(0, 0, 0, 0.5)'
       }}
-      onClick={(e) => {
-        if (shouldPositionBelow && e.target === e.currentTarget) {
-          onClose();
-        } else if (!shouldPositionBelow) {
-          onClose();
-        }
-      }}
+      onClick={(e) => e.stopPropagation()}
       onWheel={preventWheel}
       onTouchMove={handleOverlayTouchMove}
       onTouchStart={onTouchStart}
