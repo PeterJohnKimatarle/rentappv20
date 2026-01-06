@@ -56,6 +56,10 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
                   <span>Faster loading times</span>
                 </li>
                 <li className="flex items-center space-x-2">
+                  <Smartphone className="text-blue-500" size={16} />
+                  <span>Full mobile app experience</span>
+                </li>
+                <li className="flex items-center space-x-2">
                   <Heart className="text-blue-500" size={16} />
                   <span>Enhanced user experience</span>
                 </li>
@@ -82,15 +86,15 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
                 <h4 className="font-semibold text-purple-900">App Version</h4>
               </div>
               <p className="text-sm text-purple-800">
-                <strong>Version:</strong> 0.8.0<br/>
+                <strong>Release:</strong> Stable<br/>
                 <strong>Platform:</strong> Progressive Web App<br/>
-                <strong>Last Updated:</strong> December 2025
+                <strong>Optimized for speed and reliability</strong>
               </p>
             </div>
 
             {/* Support */}
             <div className="bg-yellow-50 rounded-lg p-4 border-l-4 border-yellow-400">
-              <h4 className="font-semibold text-yellow-900 mb-2">💡 Need Help?</h4>
+              <h4 className="font-semibold text-yellow-900 mb-2">Help & Support</h4>
               <p className="text-sm text-yellow-800 mb-2">
                 If you encounter any issues with the app, try refreshing or reinstalling.
               </p>
@@ -104,6 +108,17 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
               <p className="text-sm text-gray-500">
                 Thank you for choosing Rentapp! Enjoy your property search experience.
               </p>
+              <p className="text-sm text-gray-500 mt-2">
+                Built for renters, brokers, and owners.
+              </p>
+              <div className="flex justify-center gap-4 mt-4">
+                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline">
+                  Privacy Policy
+                </a>
+                <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline">
+                  Terms & Conditions
+                </a>
+              </div>
             </div>
           </div>
         </div>
