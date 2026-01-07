@@ -614,26 +614,28 @@ export default function AdminPage() {
                           <h4 className="font-semibold text-gray-900">
                             {staff.firstName || staff.name || 'Unknown'}
                           </h4>
-                          {staff.isApproved ? (
-                            <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full flex items-center gap-1.5">
-                              Approved
-                              {isOnline && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mt-0.5 flex-shrink-0"></span>}
-                            </span>
-                          ) : (
-                            <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full flex items-center gap-1.5">
-                              Pending
-                              {isOnline && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mt-0.5 flex-shrink-0"></span>}
-                            </span>
-                          )}
-                          {(() => {
-                            if (typeof window !== 'undefined') {
-                              const notes = getUserNotes(staff.id);
-                              return notes.trim().length > 0;
-                            }
-                            return false;
-                          })() && (
-                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            {staff.isApproved ? (
+                              <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full flex items-center gap-1.5">
+                                Approved
+                                {isOnline && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mt-0.5 flex-shrink-0"></span>}
+                              </span>
+                            ) : (
+                              <span className="px-2 py-1 bg-orange-100 text-orange-700 text-xs font-semibold rounded-full flex items-center gap-1.5">
+                                Pending
+                                {isOnline && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mt-0.5 flex-shrink-0"></span>}
+                              </span>
+                            )}
+                            {(() => {
+                              if (typeof window !== 'undefined') {
+                                const notes = getUserNotes(staff.id);
+                                return notes.trim().length > 0;
+                              }
+                              return false;
+                            })() && (
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                            )}
+                          </div>
                         </div>
                         <p className="text-sm text-gray-600">{staff.email}</p>
                         {staff.phone && (
@@ -694,8 +696,8 @@ export default function AdminPage() {
                         })() && (
                           <span className="absolute left-4 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                         )}
-                        <UserCircle size={16} />
-                        View profile
+                        <UserCircle size={16} className="flex-shrink-0" />
+                        <span>View profile</span>
                       </button>
                       <button
                         onClick={() => {
@@ -834,19 +836,21 @@ export default function AdminPage() {
                           <h4 className="font-semibold text-gray-900">
                             {userItem.firstName || userItem.name || 'Unknown'}
                           </h4>
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 flex items-center gap-1.5">
-                            Member
-                            {isOnline && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mt-0.5 flex-shrink-0"></span>}
-                          </span>
-                          {(() => {
-                            if (typeof window !== 'undefined') {
-                              const notes = getUserNotes(userItem.id);
-                              return notes.trim().length > 0;
-                            }
-                            return false;
-                          })() && (
-                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
-                          )}
+                          <div className="flex items-center gap-1.5">
+                            <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 flex items-center gap-1.5">
+                              Member
+                              {isOnline && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mt-0.5 flex-shrink-0"></span>}
+                            </span>
+                            {(() => {
+                              if (typeof window !== 'undefined') {
+                                const notes = getUserNotes(userItem.id);
+                                return notes.trim().length > 0;
+                              }
+                              return false;
+                            })() && (
+                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                            )}
+                          </div>
                         </div>
                         <p className="text-sm text-gray-600">{userItem.email}</p>
                         {userItem.phone && (
@@ -883,8 +887,8 @@ export default function AdminPage() {
                         })() && (
                           <span className="absolute left-4 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                         )}
-                        <UserCircle size={16} />
-                        View profile
+                        <UserCircle size={16} className="flex-shrink-0" />
+                        <span>View profile</span>
                       </button>
                       <button
                         onClick={() => {
