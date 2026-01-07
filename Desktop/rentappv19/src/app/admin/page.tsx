@@ -127,13 +127,15 @@ export default function AdminPage() {
   const [openUserDropdown, setOpenUserDropdown] = useState<string | null>(null);
   const [deleteConfirm, setDeleteConfirm] = useState<{ id: string; name: string; type: 'staff' | 'user' } | null>(null);
   const [isLoggingAs, setIsLoggingAs] = useState(false);
+  const [showProfileModal, setShowProfileModal] = useState(false);
+  const [selectedProfileUser, setSelectedProfileUser] = useState<User | null>(null);
   const [closedProperties, setClosedProperties] = useState<DisplayProperty[]>([]);
   const [followUpProperties, setFollowUpProperties] = useState<DisplayProperty[]>([]);
   const [staffEnrollmentEnabled, setStaffEnrollmentEnabled] = useState(false);
   const [guestUsers, setGuestUsers] = useState<Array<{ id: string; firstVisit: number; lastVisit: number; isActive: boolean }>>([]);
 
   // Prevent body scroll when delete confirmation popup or mobile menu is open
-  usePreventScroll(deleteConfirm !== null || isLoginPopupOpen || isMenuOpen);
+  usePreventScroll(deleteConfirm !== null || isLoginPopupOpen || isMenuOpen || showProfileModal);
 
   // Document-level outside-click detection for admin menu
   useEffect(() => {
@@ -614,6 +616,18 @@ export default function AdminPage() {
                       <button
                         onClick={() => {
                           setOpenStaffDropdown(null);
+                          setSelectedProfileUser(staff);
+                          setShowProfileModal(true);
+                        }}
+                        disabled={loading}
+                        className="w-full px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap"
+                      >
+                        <UserCircle size={16} />
+                        View profile
+                      </button>
+                      <button
+                        onClick={() => {
+                          setOpenStaffDropdown(null);
                           handleLoginAs(staff.id);
                         }}
                         disabled={loading}
@@ -769,6 +783,18 @@ export default function AdminPage() {
                           <>
                             <div className="fixed inset-0 z-10" onClick={() => setOpenUserDropdown(null)} />
                             <div className="absolute top-0 right-0 mr-2 bg-blue-50 border border-blue-500 border-2 shadow-blue-100 rounded-lg px-4 py-2 space-y-1.5 flex flex-col items-center w-fit z-20 transform -translate-x-[20%]">
+                      <button
+                        onClick={() => {
+                          setOpenUserDropdown(null);
+                          setSelectedProfileUser(userItem);
+                          setShowProfileModal(true);
+                        }}
+                        disabled={loading}
+                        className="w-full px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap"
+                      >
+                        <UserCircle size={16} />
+                        View profile
+                      </button>
                       <button
                         onClick={() => {
                           setOpenUserDropdown(null);
@@ -1067,6 +1093,105 @@ export default function AdminPage() {
             setDeleteConfirm(null);
           }}
         />
+      )}
+
+      {/* Profile Modal - Read Only */}
+      {showProfileModal && selectedProfileUser && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowProfileModal(false);
+              setSelectedProfileUser(null);
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-center pt-4 pb-2 px-4 bg-white sticky top-0 z-10 border-b border-gray-200">
+              <h3 className="text-2xl font-semibold text-black">User Profile</h3>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="space-y-6">
+                {/* Profile Image */}
+                <div className="flex justify-center">
+                  {selectedProfileUser.profileImage ? (
+                    <img
+                      src={selectedProfileUser.profileImage}
+                      alt={selectedProfileUser.name}
+                      className="w-32 h-32 rounded-full object-cover border-4 border-blue-500"
+                    />
+                  ) : (
+                    <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center border-4 border-blue-500">
+                      <UserIcon className="w-16 h-16 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+
+                {/* User Info */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Name</label>
+                    <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300">
+                      {selectedProfileUser.firstName || selectedProfileUser.name?.split(' ')[0] || 'Not provided'}
+                      {selectedProfileUser.lastName && ` ${selectedProfileUser.lastName}`}
+                      {!selectedProfileUser.firstName && !selectedProfileUser.lastName && selectedProfileUser.name && ` ${selectedProfileUser.name.split(' ').slice(1).join(' ')}`}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                    <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300">
+                      {selectedProfileUser.email || 'Not provided'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
+                    <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300">
+                      {selectedProfileUser.phone || 'Not provided'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Role</label>
+                    <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300">
+                      {selectedProfileUser.role ? selectedProfileUser.role.charAt(0).toUpperCase() + selectedProfileUser.role.slice(1) : 'Not provided'}
+                    </div>
+                  </div>
+
+                  {selectedProfileUser.role === 'staff' && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
+                      <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300">
+                        {selectedProfileUser.isApproved ? 'Approved' : 'Pending'}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200">
+              <button
+                onClick={() => {
+                  setShowProfileModal(false);
+                  setSelectedProfileUser(null);
+                }}
+                className="w-full px-4 py-3 rounded-lg font-medium bg-gray-300 hover:bg-gray-400 text-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </Layout>
   );
