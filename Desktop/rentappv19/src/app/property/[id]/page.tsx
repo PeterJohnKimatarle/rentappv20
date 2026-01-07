@@ -809,7 +809,7 @@ export default function PropertyDetailsPage() {
                                 }
                               }
                             }}
-                            className="ml-1 underline decoration-black"
+                            className="ml-1"
                           >
                             {property.ownerName}{'uploaderType' in property && property.uploaderType ? ` (${property.uploaderType})` : ''}
                           </button>
