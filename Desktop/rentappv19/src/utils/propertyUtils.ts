@@ -842,6 +842,40 @@ export const getPropertyNotesAnyUser = (propertyId: string): string => {
   }
 };
 
+// Get shared staff notes for a user (user behavior notes)
+const getUserNotesStorageKey = (userId: string): string => {
+  return `rentapp_user_notes_staff_${userId}`;
+};
+
+// Get shared staff notes for a user
+export const getUserNotes = (userId: string): string => {
+  if (typeof window === 'undefined') return '';
+  
+  try {
+    const key = getUserNotesStorageKey(userId);
+    return localStorage.getItem(key) || '';
+  } catch (error) {
+    console.error('Error getting user notes:', error);
+    return '';
+  }
+};
+
+// Save shared staff notes for a user
+export const saveUserNotes = (userId: string, notes: string): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  try {
+    const key = getUserNotesStorageKey(userId);
+    localStorage.setItem(key, notes);
+    // Dispatch event to notify other components
+    window.dispatchEvent(new CustomEvent('userNotesChanged'));
+    return true;
+  } catch (error) {
+    console.error('Error saving user notes:', error);
+    return false;
+  }
+};
+
 // Clear all follow-up and closed properties for all users
 export const clearAllFollowUpAndClosed = (userId?: string): void => {
   if (typeof window === 'undefined') return;

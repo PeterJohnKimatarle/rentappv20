@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { MapPin, Bed, Bath, Square, ArrowLeft, Phone, Mail, Calendar, Share2, Image as ImageIcon, Clock, Heart, MessageCircle, FileText, Check, MoreVertical, Radio, User as UserIcon } from 'lucide-react';
-import { getAllProperties, DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, confirmPropertyStatus, getStatusConfirmation, updateProperty, getPropertyById, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getStaffNotes, saveStaffNotes } from '@/utils/propertyUtils';
+import { getAllProperties, DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, confirmPropertyStatus, getStatusConfirmation, updateProperty, getPropertyById, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getStaffNotes, saveStaffNotes, getUserNotes, saveUserNotes } from '@/utils/propertyUtils';
 import { parsePropertyType, getPropertyTypeDisplayLabel } from '@/utils/propertyTypes';
 import ImageLightbox from '@/components/ImageLightbox';
 import SharePopup from '@/components/SharePopup';
@@ -50,9 +50,13 @@ export default function PropertyDetailsPage() {
   const [descriptionModalView, setDescriptionModalView] = useState<'description' | 'category'>('description');
   const [showUploaderProfileModal, setShowUploaderProfileModal] = useState(false);
   const [uploaderUser, setUploaderUser] = useState<{ id: string; name: string; firstName?: string; lastName?: string; email: string; phone?: string; role: string; profileImage?: string; bio?: string; isApproved?: boolean } | null>(null);
+  const [showUserNotesModal, setShowUserNotesModal] = useState(false);
+  const [userNotes, setUserNotes] = useState('');
+  const [isUserNotesEditable, setIsUserNotesEditable] = useState(false);
+  const [userNotesKeyboardInset, setUserNotesKeyboardInset] = useState(0);
 
   // Prevent body scrolling when booking modal is open
-  usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal || showUploaderProfileModal);
+  usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal || showUploaderProfileModal || showUserNotesModal);
 
   useEffect(() => {
     const propertyId = params.id as string;
@@ -315,6 +319,30 @@ export default function PropertyDetailsPage() {
       vv.removeEventListener('scroll', handleResize);
     };
   }, [showNotesModal]);
+
+  // Detect keyboard visibility for user notes modal
+  useEffect(() => {
+    if (!showUserNotesModal) {
+      setUserNotesKeyboardInset(0);
+      return;
+    }
+    const vv = typeof window !== 'undefined'
+      ? (window as Window & { visualViewport?: VisualViewport }).visualViewport
+      : undefined;
+    if (!vv) return;
+    const handleResize = () => {
+      const covered = Math.max(0, window.innerHeight - vv.height);
+      // Move modal up by 100px when keyboard is visible, return to center when not visible
+      setUserNotesKeyboardInset(covered > 0 ? 100 : 0);
+    };
+    handleResize();
+    vv.addEventListener('resize', handleResize);
+    vv.addEventListener('scroll', handleResize);
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      vv.removeEventListener('scroll', handleResize);
+    };
+  }, [showUserNotesModal]);
 
   // Detect amenities overflow for desktop line clamping
   useEffect(() => {
@@ -2119,10 +2147,141 @@ export default function PropertyDetailsPage() {
             {/* Footer */}
             <div className="p-4 border-t border-gray-200">
               <button
-                onClick={() => setShowUploaderProfileModal(false)}
+                onClick={() => {
+                  if (uploaderUser) {
+                    // Load user notes
+                    const notes = getUserNotes(uploaderUser.id);
+                    setUserNotes(notes);
+                    setIsUserNotesEditable(false);
+                    setShowUploaderProfileModal(false);
+                    setShowUserNotesModal(true);
+                  }
+                }}
                 className="w-full px-4 py-3 rounded-lg font-medium bg-gray-300 hover:bg-gray-400 text-gray-700 transition-colors"
               >
-                Close
+                User notes (Behaviour)
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Notes Modal - Admin/Staff Only */}
+      {showUserNotesModal && uploaderUser && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{
+            touchAction: 'none',
+            minHeight: '100vh',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
+          onClick={() => {
+            setShowUserNotesModal(false);
+            setUserNotes('');
+          }}
+        >
+          <div
+            className="bg-white rounded-xl px-4 py-2 sm:px-6 sm:pt-1 sm:pb-14 md:pb-4 max-w-sm md:max-w-[414px] w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: userNotesKeyboardInset > 0 ? `translateY(-${userNotesKeyboardInset}px)` : 'translateY(0)',
+              transition: 'transform 0.2s ease-out'
+            }}
+          >
+            <div className="flex justify-between items-center mb-3 relative pt-1">
+              <h3 className="text-xl font-semibold text-black flex-1 text-center">
+                User notes (Behaviour)
+              </h3>
+            </div>
+            
+            <textarea
+              className={`w-full px-3 py-2 rounded-lg border-2 border-gray-300 text-gray-800 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isUserNotesEditable ? 'bg-gray-50 cursor-pointer' : ''}`}
+              placeholder={isUserNotesEditable ? "Add notes about this user's behaviour..." : "Double-click to edit/add notes..."}
+              rows={6}
+              value={userNotes}
+              onChange={(e) => setUserNotes(e.target.value)}
+              readOnly={!isUserNotesEditable}
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                if ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin') {
+                  setIsUserNotesEditable(true);
+                  requestAnimationFrame(() => {
+                    setTimeout(() => {
+                      const textarea = e.currentTarget as HTMLTextAreaElement;
+                      if (textarea) {
+                        textarea.removeAttribute('readonly');
+                        textarea.focus();
+                        const length = textarea.value.length;
+                        textarea.setSelectionRange(length, length);
+                      }
+                    }, 0);
+                  });
+                }
+              }}
+              onTouchStart={(e) => {
+                if (!isUserNotesEditable && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin')) {
+                  const target = e.currentTarget;
+                  const now = Date.now();
+                  const lastTap = (target as any).lastTap || 0;
+                  
+                  if (now - lastTap < 300) {
+                    e.preventDefault();
+                    setIsUserNotesEditable(true);
+                    requestAnimationFrame(() => {
+                      setTimeout(() => {
+                        target.removeAttribute('readonly');
+                        target.focus();
+                        const length = target.value.length;
+                        target.setSelectionRange(length, length);
+                      }, 0);
+                    });
+                  }
+                  (target as any).lastTap = now;
+                }
+              }}
+            />
+
+            <div className="flex gap-2 mt-1.5">
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined' && uploaderUser && ((user?.role === 'staff' && user?.isApproved) || user?.role === 'admin')) {
+                    saveUserNotes(uploaderUser.id, userNotes);
+                  }
+                  setIsUserNotesEditable(false);
+                  setShowUserNotesModal(false);
+                }}
+                className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
+                style={{ 
+                  backgroundColor: 'rgba(34, 197, 94, 0.9)',
+                  WebkitTapHighlightColor: 'transparent',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  outline: 'none'
+                }}
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setIsUserNotesEditable(false);
+                  setShowUserNotesModal(false);
+                  setUserNotes('');
+                }}
+                className="px-4 py-2 rounded-lg font-medium text-white select-none flex-1"
+                style={{ 
+                  backgroundColor: '#ef4444',
+                  WebkitTapHighlightColor: 'transparent',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  outline: 'none'
+                }}
+              >
+                Cancel
               </button>
             </div>
           </div>
