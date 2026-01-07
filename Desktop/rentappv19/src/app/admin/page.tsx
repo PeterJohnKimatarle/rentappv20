@@ -694,7 +694,7 @@ export default function AdminPage() {
                           }
                           return false;
                         })() && (
-                          <span className="absolute left-4 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                          <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                         )}
                         <UserCircle size={16} className="flex-shrink-0" />
                         <span>View profile</span>
@@ -885,7 +885,7 @@ export default function AdminPage() {
                           }
                           return false;
                         })() && (
-                          <span className="absolute left-4 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                          <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                         )}
                         <UserCircle size={16} className="flex-shrink-0" />
                         <span>View profile</span>
