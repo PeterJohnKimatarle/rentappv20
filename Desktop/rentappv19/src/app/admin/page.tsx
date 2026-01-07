@@ -685,7 +685,7 @@ export default function AdminPage() {
                         }}
                         disabled={loading}
                         className="w-full py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
-                        style={{ paddingLeft: '1.5rem', paddingRight: '1rem' }}
+                        style={{ paddingLeft: '1.75rem', paddingRight: '1rem' }}
                       >
                         {(() => {
                           if (typeof window !== 'undefined') {
@@ -876,7 +876,7 @@ export default function AdminPage() {
                         }}
                         disabled={loading}
                         className="w-full py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
-                        style={{ paddingLeft: '1.5rem', paddingRight: '1rem' }}
+                        style={{ paddingLeft: '1.75rem', paddingRight: '1rem' }}
                       >
                         {(() => {
                           if (typeof window !== 'undefined') {
