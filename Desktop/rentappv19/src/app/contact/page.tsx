@@ -1,7 +1,7 @@
 "use client";
 
 import Layout from '@/components/Layout';
-import { Phone, MessageCircle } from 'lucide-react';
+import { Phone, MessageCircle, Clock } from 'lucide-react';
 import { useState } from 'react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 
@@ -36,7 +36,7 @@ export default function ContactPage() {
         <div className="bg-gray-50 pt-2 pb-2 min-h-0">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             {/* Header */}
-            <div className="text-center mb-1">
+            <div className="text-center mb-4">
               <h1 className="text-3xl sm:text-4xl font-bold text-gray-600 mb-1">
                 Contact Us
               </h1>
@@ -53,18 +53,20 @@ export default function ContactPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div 
                       onClick={handlePhoneCardClick}
-                      className="bg-white px-6 py-3 rounded-xl shadow-lg border border-blue-500 border-2 shadow-blue-100 cursor-pointer hover:bg-blue-50 transition-colors"
+                      className="bg-[#25D366] hover:bg-[#20BD5A] text-white px-4 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105 cursor-pointer"
                     >
-                      <div className="text-center">
-                        <h3 className="text-lg font-semibold text-black">Phone/WhatsApp</h3>
-                        <p className="text-gray-600">0755-123-500</p>
+                      <MessageCircle className="w-7 h-7" />
+                      <div className="text-left">
+                        <span className="text-lg font-semibold block">Phone/WhatsApp</span>
+                        <p className="text-base text-white/90">0755-123-500</p>
                       </div>
                     </div>
 
-                  <div className="bg-white px-6 py-3 rounded-xl shadow-lg border border-blue-500 border-2 shadow-blue-100">
-                    <div className="text-center">
-                      <h3 className="text-lg font-semibold text-black">Business Hours</h3>
-                      <p className="text-gray-600">24/7 Available</p>
+                  <div className="bg-[#6366F1] hover:bg-[#4F46E5] text-white px-4 py-3 rounded-lg shadow-md hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 transform hover:scale-105">
+                    <Clock className="w-7 h-7" />
+                    <div className="text-left">
+                      <span className="text-lg font-semibold block">Business Hours</span>
+                      <p className="text-base text-white/90">24/7 Available</p>
                     </div>
                   </div>
 

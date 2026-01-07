@@ -17,7 +17,7 @@ export default function ServicesPage() {
     {
       id: 1,
       title: "Property Listing",
-      description: "List your property with us and reach thousands of potential tenants. Our platform makes it easy to showcase your property with photos, detailed descriptions, and contact information.",
+      description: "List your property with us and reach thousands of potential tenants. Our platform makes it easy to showcase your property with photos and  detailed descriptions, and we connect you with only valid leads.",
       icon: Home,
       features: [
         "Professional property photos",
@@ -29,7 +29,7 @@ export default function ServicesPage() {
     {
       id: 2,
       title: "Property Renting",
-      description: "Find your perfect rental property with our comprehensive search tools. Browse through verified listings and connect directly with landlords.",
+      description: "Find your perfect rental property with our comprehensive search tools. Browse through the listings and find your perfect home.",
       icon: Search,
       features: [
         "Verified property listings",
@@ -41,7 +41,7 @@ export default function ServicesPage() {
     {
       id: 3,
       title: "Property Visitation",
-      description: "Schedule and manage property visits with ease. Our system allows you to book viewings and coordinate with property owners seamlessly.",
+      description: "Schedule and manage property visits with ease. Our system allows you to book viewings and coordinate with our staff members seamlessly.",
       icon: Calendar,
       features: [
         "Online visit scheduling",
@@ -142,15 +142,15 @@ export default function ServicesPage() {
         </div>
 
         {/* Help Section */}
-        <div className="bg-blue-600 rounded-xl p-4 text-center text-white">
-          <p className="text-base mb-4 opacity-90">
+        <div className="bg-blue-400 text-white p-8 rounded-lg text-center">
+          <p className="text-blue-100 mb-6 max-w-2xl mx-auto">
             Have questions about our services? our team is available 24/7 to assist you.
           </p>
           
           {/* Contact Us Button */}
           <button 
             onClick={handleContactClick}
-            className="bg-white hover:bg-gray-100 text-black font-bold py-3 px-8 rounded-lg transition-colors duration-300 shadow-lg hover:shadow-xl"
+            className="bg-white hover:bg-gray-100 text-blue-600 px-8 py-3 rounded-lg font-semibold transition-colors duration-200"
           >
             Contact us
           </button>
