@@ -1760,7 +1760,7 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                     <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                   )}
                   <FileText size={18} />
-                  <span>View/edit notes property</span>
+                  <span>View/edit notes</span>
                 </button>
               )}
             </div>
