@@ -8,7 +8,7 @@ import { ShieldCheck, Users, Settings, UserCheck, Check, Menu, X, ChevronRight, 
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { getAllProperties, getClosedProperties, getFollowUpProperties, DisplayProperty } from '@/utils/propertyUtils';
+import { getAllProperties, getClosedProperties, getFollowUpProperties, DisplayProperty, getUserNotes, saveUserNotes } from '@/utils/propertyUtils';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 import { isStaffEnrollmentEnabled, toggleStaffEnrollment } from '@/utils/adminSettings';
 import { getActiveSessions, getOnlineUserCount } from '@/utils/sessionTracking';
@@ -24,6 +24,7 @@ interface User {
   role: 'tenant' | 'landlord' | 'broker' | 'staff' | 'admin';
   isApproved?: boolean;
   profileImage?: string;
+  bio?: string;
 }
 
 type ViewType = 'staff' | 'users' | 'guests' | 'settings' | 'closed' | 'followup';
@@ -133,9 +134,14 @@ export default function AdminPage() {
   const [followUpProperties, setFollowUpProperties] = useState<DisplayProperty[]>([]);
   const [staffEnrollmentEnabled, setStaffEnrollmentEnabled] = useState(false);
   const [guestUsers, setGuestUsers] = useState<Array<{ id: string; firstVisit: number; lastVisit: number; isActive: boolean }>>([]);
+  const [showUserNotesModal, setShowUserNotesModal] = useState(false);
+  const [userNotes, setUserNotes] = useState('');
+  const [isUserNotesEditable, setIsUserNotesEditable] = useState(false);
+  const [userNotesKeyboardInset, setUserNotesKeyboardInset] = useState(0);
+  const [hasUserNotes, setHasUserNotes] = useState(false);
 
   // Prevent body scroll when delete confirmation popup or mobile menu is open
-  usePreventScroll(deleteConfirm !== null || isLoginPopupOpen || isMenuOpen || showProfileModal);
+  usePreventScroll(deleteConfirm !== null || isLoginPopupOpen || isMenuOpen || showProfileModal || showUserNotesModal);
 
   // Document-level outside-click detection for admin menu
   useEffect(() => {
@@ -248,6 +254,53 @@ export default function AdminPage() {
       return () => clearInterval(interval);
     }
   }, [isAdmin]);
+
+  // Check if selected profile user has notes
+  useEffect(() => {
+    if (selectedProfileUser && typeof window !== 'undefined') {
+      const checkUserNotes = () => {
+        if (user?.role === 'admin') {
+          const notes = getUserNotes(selectedProfileUser.id);
+          setHasUserNotes(notes.trim().length > 0);
+        } else {
+          setHasUserNotes(false);
+        }
+      };
+      checkUserNotes();
+      // Listen for user notes changes
+      const handleUserNotesChange = () => checkUserNotes();
+      window.addEventListener('userNotesChanged', handleUserNotesChange);
+      return () => {
+        window.removeEventListener('userNotesChanged', handleUserNotesChange);
+      };
+    } else {
+      setHasUserNotes(false);
+    }
+  }, [selectedProfileUser?.id, user?.role]);
+
+  // Detect keyboard visibility for user notes modal
+  useEffect(() => {
+    if (!showUserNotesModal) {
+      setUserNotesKeyboardInset(0);
+      return;
+    }
+    const vv = typeof window !== 'undefined'
+      ? (window as Window & { visualViewport?: VisualViewport }).visualViewport
+      : undefined;
+    if (!vv) return;
+    const handleResize = () => {
+      const covered = Math.max(0, window.innerHeight - vv.height);
+      // Move modal up by 100px when keyboard is visible, return to center when not visible
+      setUserNotesKeyboardInset(covered > 0 ? 100 : 0);
+    };
+    handleResize();
+    vv.addEventListener('resize', handleResize);
+    vv.addEventListener('scroll', handleResize);
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      vv.removeEventListener('scroll', handleResize);
+    };
+  }, [showUserNotesModal]);
 
   const loadClosedProperties = () => {
     if (typeof window !== 'undefined') {
@@ -1159,18 +1212,11 @@ export default function AdminPage() {
                     </div>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-1">Role</label>
-                    <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300">
-                      {selectedProfileUser.role ? selectedProfileUser.role.charAt(0).toUpperCase() + selectedProfileUser.role.slice(1) : 'Not provided'}
-                    </div>
-                  </div>
-
-                  {selectedProfileUser.role === 'staff' && (
+                  {selectedProfileUser.bio && (
                     <div>
-                      <label className="block text-sm font-semibold text-gray-700 mb-1">Status</label>
-                      <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300">
-                        {selectedProfileUser.isApproved ? 'Approved' : 'Pending'}
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Bio</label>
+                      <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300 min-h-[60px]">
+                        {selectedProfileUser.bio}
                       </div>
                     </div>
                   )}
@@ -1182,12 +1228,164 @@ export default function AdminPage() {
             <div className="p-4 border-t border-gray-200">
               <button
                 onClick={() => {
-                  setShowProfileModal(false);
-                  setSelectedProfileUser(null);
+                  if (selectedProfileUser) {
+                    // Load user notes
+                    const notes = getUserNotes(selectedProfileUser.id);
+                    setUserNotes(notes);
+                    setIsUserNotesEditable(false);
+                    // Don't close the profile modal
+                    setShowUserNotesModal(true);
+                  }
                 }}
-                className="w-full px-4 py-3 rounded-lg font-medium bg-gray-300 hover:bg-gray-400 text-gray-700 transition-colors"
+                className="w-full px-4 py-3 rounded-lg font-medium text-white transition-colors relative flex items-center justify-center"
+                style={{ 
+                  backgroundColor: 'rgba(59, 130, 246, 0.9)',
+                  WebkitTapHighlightColor: 'transparent',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  outline: 'none'
+                }}
               >
-                Close
+                {hasUserNotes && (
+                  <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                )}
+                <span>User notes (Behaviour)</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* User Notes Modal - Admin Only */}
+      {showUserNotesModal && selectedProfileUser && user?.role === 'admin' && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{
+            touchAction: 'none',
+            minHeight: '100vh',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
+          onClick={() => {
+            setShowUserNotesModal(false);
+            setUserNotes('');
+            // Reopen profile modal
+            if (selectedProfileUser) {
+              setShowProfileModal(true);
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-xl px-4 py-2 sm:px-6 sm:pt-1 sm:pb-14 md:pb-4 max-w-sm md:max-w-[414px] w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: userNotesKeyboardInset > 0 ? `translateY(-${userNotesKeyboardInset}px)` : 'translateY(0)',
+              transition: 'transform 0.2s ease-out'
+            }}
+          >
+            <div className="flex justify-between items-center mb-3 relative pt-1">
+              <h3 className="text-xl font-semibold text-black flex-1 text-center">
+                User notes (Behaviour)
+              </h3>
+            </div>
+            
+            <textarea
+              className={`w-full px-3 py-2 rounded-lg border-2 border-gray-300 text-gray-800 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isUserNotesEditable ? 'bg-gray-50 cursor-pointer' : ''}`}
+              placeholder={isUserNotesEditable ? "Add notes about this user's behaviour..." : "Double-click to edit/add notes..."}
+              rows={6}
+              value={userNotes}
+              onChange={(e) => setUserNotes(e.target.value)}
+              readOnly={!isUserNotesEditable}
+              onDoubleClick={(e) => {
+                e.preventDefault();
+                if (user?.role === 'admin') {
+                  setIsUserNotesEditable(true);
+                  requestAnimationFrame(() => {
+                    setTimeout(() => {
+                      const textarea = e.currentTarget as HTMLTextAreaElement;
+                      if (textarea) {
+                        textarea.removeAttribute('readonly');
+                        textarea.focus();
+                        const length = textarea.value.length;
+                        textarea.setSelectionRange(length, length);
+                      }
+                    }, 0);
+                  });
+                }
+              }}
+              onTouchStart={(e) => {
+                if (!isUserNotesEditable && user?.role === 'admin') {
+                  const target = e.currentTarget;
+                  const now = Date.now();
+                  const lastTap = (target as any).lastTap || 0;
+                  
+                  if (now - lastTap < 300) {
+                    e.preventDefault();
+                    setIsUserNotesEditable(true);
+                    requestAnimationFrame(() => {
+                      setTimeout(() => {
+                        target.removeAttribute('readonly');
+                        target.focus();
+                        const length = target.value.length;
+                        target.setSelectionRange(length, length);
+                      }, 0);
+                    });
+                  }
+                  (target as any).lastTap = now;
+                }
+              }}
+            />
+
+            <div className="flex gap-2 mt-1.5">
+              <button
+                onClick={() => {
+                  if (typeof window !== 'undefined' && selectedProfileUser && user?.role === 'admin') {
+                    saveUserNotes(selectedProfileUser.id, userNotes);
+                  }
+                  setIsUserNotesEditable(false);
+                  setShowUserNotesModal(false);
+                  // Reopen profile modal
+                  if (selectedProfileUser) {
+                    setShowProfileModal(true);
+                  }
+                }}
+                className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
+                style={{ 
+                  backgroundColor: 'rgba(34, 197, 94, 0.9)',
+                  WebkitTapHighlightColor: 'transparent',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  outline: 'none'
+                }}
+              >
+                Save
+              </button>
+              <button
+                onClick={() => {
+                  setIsUserNotesEditable(false);
+                  setShowUserNotesModal(false);
+                  setUserNotes('');
+                  // Reopen profile modal
+                  if (selectedProfileUser) {
+                    setShowProfileModal(true);
+                  }
+                }}
+                className="px-4 py-2 rounded-lg font-medium text-white select-none flex-1"
+                style={{ 
+                  backgroundColor: '#ef4444',
+                  WebkitTapHighlightColor: 'transparent',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  outline: 'none'
+                }}
+              >
+                Cancel
               </button>
             </div>
           </div>
