@@ -611,17 +611,8 @@ export default function AdminPage() {
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-3 mb-1 flex-wrap">
-                          <h4 className="font-semibold text-gray-900 relative inline-flex items-center gap-1">
+                          <h4 className="font-semibold text-gray-900">
                             {staff.firstName || staff.name || 'Unknown'}
-                            {(() => {
-                              if (typeof window !== 'undefined') {
-                                const notes = getUserNotes(staff.id);
-                                return notes.trim().length > 0;
-                              }
-                              return false;
-                            })() && (
-                              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
-                            )}
                           </h4>
                           {staff.isApproved ? (
                             <span className="px-2 py-1 bg-purple-100 text-purple-700 text-xs font-semibold rounded-full flex items-center gap-1.5">
@@ -633,6 +624,15 @@ export default function AdminPage() {
                               Pending
                               {isOnline && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mt-0.5 flex-shrink-0"></span>}
                             </span>
+                          )}
+                          {(() => {
+                            if (typeof window !== 'undefined') {
+                              const notes = getUserNotes(staff.id);
+                              return notes.trim().length > 0;
+                            }
+                            return false;
+                          })() && (
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                           )}
                         </div>
                         <p className="text-sm text-gray-600">{staff.email}</p>
@@ -649,7 +649,7 @@ export default function AdminPage() {
                       {openStaffDropdown === staff.id && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setOpenStaffDropdown(null)} />
-                          <div className="absolute top-0 right-0 mr-2 bg-blue-50 border border-blue-500 border-2 shadow-blue-100 rounded-lg px-4 py-2 space-y-1.5 flex flex-col items-center w-fit z-20 transform -translate-x-[20%]">
+                          <div className="absolute top-0 right-0 mr-2 bg-blue-50 border border-blue-500 border-2 shadow-blue-100 rounded-lg px-4 py-2 space-y-1.5 flex flex-col items-center min-w-[160px] z-20 transform -translate-x-[20%]">
                       {!staff.isApproved ? (
                         <button
                           onClick={() => {
@@ -682,7 +682,8 @@ export default function AdminPage() {
                           setShowProfileModal(true);
                         }}
                         disabled={loading}
-                        className="w-full px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
+                        className="w-full py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
+                        style={{ paddingLeft: '1.5rem', paddingRight: '1rem' }}
                       >
                         {(() => {
                           if (typeof window !== 'undefined') {
@@ -691,7 +692,7 @@ export default function AdminPage() {
                           }
                           return false;
                         })() && (
-                          <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                          <span className="absolute left-4 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                         )}
                         <UserCircle size={16} />
                         View profile
@@ -833,19 +834,19 @@ export default function AdminPage() {
                           <h4 className="font-semibold text-gray-900">
                             {userItem.firstName || userItem.name || 'Unknown'}
                           </h4>
-                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 flex items-center gap-1.5 relative">
+                          <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-700 flex items-center gap-1.5">
                             Member
                             {isOnline && <span className="inline-block w-1.5 h-1.5 rounded-full bg-green-500 mt-0.5 flex-shrink-0"></span>}
-                            {(() => {
-                              if (typeof window !== 'undefined') {
-                                const notes = getUserNotes(userItem.id);
-                                return notes.trim().length > 0;
-                              }
-                              return false;
-                            })() && (
-                              <span className="w-2 h-2 rounded-full flex-shrink-0 ml-1" style={{ backgroundColor: '#fbbf24' }}></span>
-                            )}
                           </span>
+                          {(() => {
+                            if (typeof window !== 'undefined') {
+                              const notes = getUserNotes(userItem.id);
+                              return notes.trim().length > 0;
+                            }
+                            return false;
+                          })() && (
+                            <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                          )}
                         </div>
                         <p className="text-sm text-gray-600">{userItem.email}</p>
                         {userItem.phone && (
@@ -862,7 +863,7 @@ export default function AdminPage() {
                         {openUserDropdown === userItem.id && (
                           <>
                             <div className="fixed inset-0 z-10" onClick={() => setOpenUserDropdown(null)} />
-                            <div className="absolute top-0 right-0 mr-2 bg-blue-50 border border-blue-500 border-2 shadow-blue-100 rounded-lg px-4 py-2 space-y-1.5 flex flex-col items-center w-fit z-20 transform -translate-x-[20%]">
+                            <div className="absolute top-0 right-0 mr-2 bg-blue-50 border border-blue-500 border-2 shadow-blue-100 rounded-lg px-4 py-2 space-y-1.5 flex flex-col items-center min-w-[160px] z-20 transform -translate-x-[20%]">
                       <button
                         onClick={() => {
                           setOpenUserDropdown(null);
@@ -870,7 +871,8 @@ export default function AdminPage() {
                           setShowProfileModal(true);
                         }}
                         disabled={loading}
-                        className="w-full px-4 py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
+                        className="w-full py-2 rounded-xl bg-indigo-500 text-white hover:bg-indigo-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap relative"
+                        style={{ paddingLeft: '1.5rem', paddingRight: '1rem' }}
                       >
                         {(() => {
                           if (typeof window !== 'undefined') {
@@ -879,8 +881,9 @@ export default function AdminPage() {
                           }
                           return false;
                         })() && (
-                          <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                          <span className="absolute left-4 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
                         )}
+                        <UserCircle size={16} />
                         View profile
                       </button>
                       <button
@@ -891,6 +894,7 @@ export default function AdminPage() {
                         disabled={loading}
                         className="w-full px-4 py-2 rounded-xl bg-blue-500 text-white hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 font-medium text-sm whitespace-nowrap"
                       >
+                        <LogIn size={16} />
                         Login as
                       </button>
                             </div>
