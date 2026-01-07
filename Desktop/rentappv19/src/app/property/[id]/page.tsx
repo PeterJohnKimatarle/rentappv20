@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { MapPin, Bed, Bath, Square, ArrowLeft, Phone, Mail, Calendar, Share2, Image as ImageIcon, Clock, Heart, MessageCircle, FileText, Check, MoreVertical, Radio } from 'lucide-react';
+import { MapPin, Bed, Bath, Square, ArrowLeft, Phone, Mail, Calendar, Share2, Image as ImageIcon, Clock, Heart, MessageCircle, FileText, Check, MoreVertical, Radio, User as UserIcon } from 'lucide-react';
 import { getAllProperties, DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, confirmPropertyStatus, getStatusConfirmation, updateProperty, getPropertyById, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getStaffNotes, saveStaffNotes } from '@/utils/propertyUtils';
 import { parsePropertyType, getPropertyTypeDisplayLabel } from '@/utils/propertyTypes';
 import ImageLightbox from '@/components/ImageLightbox';
@@ -16,7 +16,7 @@ import { getSearchSessionId } from '@/utils/searchSession';
 export default function PropertyDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { user } = useAuth();
+  const { user, getAllUsers } = useAuth();
   const userId = user?.id;
   const [property, setProperty] = useState<DisplayProperty | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -48,9 +48,11 @@ export default function PropertyDetailsPage() {
   const [showDesktopMore, setShowDesktopMore] = useState(false);
   const [showDescriptionModal, setShowDescriptionModal] = useState(false);
   const [descriptionModalView, setDescriptionModalView] = useState<'description' | 'category'>('description');
+  const [showUploaderProfileModal, setShowUploaderProfileModal] = useState(false);
+  const [uploaderUser, setUploaderUser] = useState<{ id: string; name: string; firstName?: string; lastName?: string; email: string; phone?: string; role: string; profileImage?: string; bio?: string; isApproved?: boolean } | null>(null);
 
   // Prevent body scrolling when booking modal is open
-  usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal);
+  usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal || showUploaderProfileModal);
 
   useEffect(() => {
     const propertyId = params.id as string;
@@ -784,7 +786,33 @@ export default function PropertyDetailsPage() {
                     <>
                       {'ownerName' in property && property.ownerName && (
                         <div className="text-lg xl:text-xl text-gray-900">
-                          <span className="font-bold">Uploaded by:</span> <span className="ml-1">{property.ownerName}{'uploaderType' in property && property.uploaderType ? ` (${property.uploaderType})` : ''}</span>
+                          <span className="font-bold">Uploaded by:</span>{' '}
+                          <button
+                            onClick={() => {
+                              if ('ownerId' in property && property.ownerId) {
+                                const allUsers = getAllUsers();
+                                const uploader = allUsers.find(u => u.id === property.ownerId);
+                                if (uploader) {
+                                  setUploaderUser({
+                                    id: uploader.id,
+                                    name: uploader.name,
+                                    firstName: uploader.firstName,
+                                    lastName: uploader.lastName,
+                                    email: uploader.email,
+                                    phone: uploader.phone,
+                                    role: uploader.role,
+                                    profileImage: uploader.profileImage,
+                                    bio: uploader.bio,
+                                    isApproved: uploader.isApproved
+                                  });
+                                  setShowUploaderProfileModal(true);
+                                }
+                              }
+                            }}
+                            className="ml-1 text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                          >
+                            {property.ownerName}{'uploaderType' in property && property.uploaderType ? ` (${property.uploaderType})` : ''}
+                          </button>
                         </div>
                       )}
                       {'ownerEmail' in property && property.ownerEmail && (
@@ -2005,6 +2033,106 @@ export default function PropertyDetailsPage() {
               <button
                 onClick={() => setShowDescriptionModal(false)}
                 className="px-4 py-2 rounded-lg font-medium bg-gray-300 hover:bg-gray-400 text-gray-700 select-none"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Uploader Profile Modal - Read Only - Admin/Staff Only */}
+      {showUploaderProfileModal && uploaderUser && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50 p-4"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowUploaderProfileModal(false);
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-xl max-w-md w-full max-h-[90vh] overflow-hidden flex flex-col"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-center pt-4 pb-2 px-4 bg-white sticky top-0 z-10 border-b border-gray-200">
+              <h3 className="text-2xl font-semibold text-black">Uploader Profile</h3>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto flex-1">
+              <div className="space-y-6">
+                {/* Profile Image */}
+                <div className="flex justify-center">
+                  {uploaderUser.profileImage ? (
+                    <img
+                      src={uploaderUser.profileImage}
+                      alt={uploaderUser.name}
+                      className="w-32 h-32 rounded-full object-cover border-4 border-blue-500"
+                    />
+                  ) : (
+                    <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center border-4 border-blue-500">
+                      <UserIcon className="w-16 h-16 text-gray-400" />
+                    </div>
+                  )}
+                </div>
+
+                {/* User Info */}
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Name</label>
+                    <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300">
+                      {uploaderUser.firstName || uploaderUser.name?.split(' ')[0] || 'Not provided'}
+                      {uploaderUser.lastName && ` ${uploaderUser.lastName}`}
+                      {!uploaderUser.firstName && !uploaderUser.lastName && uploaderUser.name && ` ${uploaderUser.name.split(' ').slice(1).join(' ')}`}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Email</label>
+                    <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300">
+                      {uploaderUser.email || 'Not provided'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Phone</label>
+                    <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300">
+                      {uploaderUser.phone || 'Not provided'}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-semibold text-gray-700 mb-1">Role</label>
+                    <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300 capitalize">
+                      {uploaderUser.role}
+                      {uploaderUser.role === 'staff' && uploaderUser.isApproved !== undefined && (
+                        <span className="ml-2 text-sm">
+                          ({uploaderUser.isApproved ? 'Approved' : 'Pending'})
+                        </span>
+                      )}
+                    </div>
+                  </div>
+
+                  {uploaderUser.bio && (
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-1">Bio</label>
+                      <div className="text-gray-900 bg-gray-50 px-3 py-2 rounded-lg border border-gray-300 min-h-[60px]">
+                        {uploaderUser.bio}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-gray-200">
+              <button
+                onClick={() => setShowUploaderProfileModal(false)}
+                className="w-full px-4 py-3 rounded-lg font-medium bg-gray-300 hover:bg-gray-400 text-gray-700 transition-colors"
               >
                 Close
               </button>
