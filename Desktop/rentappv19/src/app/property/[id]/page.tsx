@@ -54,6 +54,7 @@ export default function PropertyDetailsPage() {
   const [userNotes, setUserNotes] = useState('');
   const [isUserNotesEditable, setIsUserNotesEditable] = useState(false);
   const [userNotesKeyboardInset, setUserNotesKeyboardInset] = useState(0);
+  const [hasUserNotes, setHasUserNotes] = useState(false);
 
   // Prevent body scrolling when booking modal is open
   usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal || showUploaderProfileModal || showUserNotesModal);
@@ -343,6 +344,29 @@ export default function PropertyDetailsPage() {
       vv.removeEventListener('scroll', handleResize);
     };
   }, [showUserNotesModal]);
+
+  // Check if uploader user has notes
+  useEffect(() => {
+    if (uploaderUser && typeof window !== 'undefined') {
+      const checkUserNotes = () => {
+        if (user?.role === 'admin' || (user?.role === 'staff' && user?.isApproved)) {
+          const notes = getUserNotes(uploaderUser.id);
+          setHasUserNotes(notes.trim().length > 0);
+        } else {
+          setHasUserNotes(false);
+        }
+      };
+      checkUserNotes();
+      // Listen for user notes changes
+      const handleUserNotesChange = () => checkUserNotes();
+      window.addEventListener('userNotesChanged', handleUserNotesChange);
+      return () => {
+        window.removeEventListener('userNotesChanged', handleUserNotesChange);
+      };
+    } else {
+      setHasUserNotes(false);
+    }
+  }, [uploaderUser?.id, user?.role]);
 
   // Detect amenities overflow for desktop line clamping
   useEffect(() => {
@@ -837,8 +861,14 @@ export default function PropertyDetailsPage() {
                                 }
                               }
                             }}
-                            className="ml-1"
+                            className="ml-1 relative inline-block"
                           >
+                            {((user?.role === 'admin' || (user?.role === 'staff' && user?.isApproved)) && 'ownerId' in property && property.ownerId && typeof window !== 'undefined') && (() => {
+                              const notes = getUserNotes(property.ownerId);
+                              return notes.trim().length > 0;
+                            })() && (
+                              <span className="absolute -left-3 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                            )}
                             {property.ownerName}{'uploaderType' in property && property.uploaderType ? ` (${property.uploaderType})` : ''}
                           </button>
                         </div>
@@ -2157,7 +2187,7 @@ export default function PropertyDetailsPage() {
                     setShowUserNotesModal(true);
                   }
                 }}
-                className="w-full px-4 py-3 rounded-lg font-medium text-white transition-colors"
+                className="w-full px-4 py-3 rounded-lg font-medium text-white transition-colors relative"
                 style={{ 
                   backgroundColor: 'rgba(59, 130, 246, 0.9)',
                   WebkitTapHighlightColor: 'transparent',
@@ -2168,6 +2198,9 @@ export default function PropertyDetailsPage() {
                   outline: 'none'
                 }}
               >
+                {hasUserNotes && (
+                  <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                )}
                 User notes (Behaviour)
               </button>
             </div>
