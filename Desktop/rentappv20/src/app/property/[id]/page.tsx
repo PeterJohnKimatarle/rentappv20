@@ -8,6 +8,7 @@ import { parsePropertyType, getPropertyTypeDisplayLabel } from '@/utils/property
 import ImageLightbox from '@/components/ImageLightbox';
 import SharePopup from '@/components/SharePopup';
 import Layout from '@/components/Layout';
+import LoginPopup from '@/components/LoginPopup';
 import { useAuth } from '@/contexts/AuthContext';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 import { ShareManager } from '@/utils/shareUtils';
@@ -16,7 +17,7 @@ import { getSearchSessionId } from '@/utils/searchSession';
 export default function PropertyDetailsPage() {
   const params = useParams();
   const router = useRouter();
-  const { user, getAllUsers } = useAuth();
+  const { user, getAllUsers, isAuthenticated } = useAuth();
   const userId = user?.id;
   const [property, setProperty] = useState<DisplayProperty | null>(null);
   const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -55,9 +56,10 @@ export default function PropertyDetailsPage() {
   const [isUserNotesEditable, setIsUserNotesEditable] = useState(false);
   const [userNotesKeyboardInset, setUserNotesKeyboardInset] = useState(0);
   const [hasUserNotes, setHasUserNotes] = useState(false);
+  const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
 
   // Prevent body scrolling when booking modal is open
-  usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal || showUploaderProfileModal || showUserNotesModal);
+  usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal || showUploaderProfileModal || showUserNotesModal || isLoginPopupOpen);
 
   useEffect(() => {
     const propertyId = params.id as string;
@@ -405,7 +407,7 @@ export default function PropertyDetailsPage() {
       return;
     }
     if (!userId) {
-      alert('Please log in to save bookmarks.');
+      setIsLoginPopupOpen(true);
       return;
     }
     if (bookmarked) {
@@ -766,6 +768,11 @@ export default function PropertyDetailsPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      // Only allow logged-in users to book
+                      if (!isAuthenticated) {
+                        setIsLoginPopupOpen(true);
+                        return;
+                      }
                       setBookingModalType('book');
                       setShowBookingModal(true);
                     }}
@@ -786,6 +793,11 @@ export default function PropertyDetailsPage() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
+                      // Only allow logged-in users to confirm status
+                      if (!isAuthenticated) {
+                        setIsLoginPopupOpen(true);
+                        return;
+                      }
                       setBookingModalType('status');
                       setShowBookingModal(true);
                     }}
@@ -1806,7 +1818,6 @@ export default function PropertyDetailsPage() {
                   <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-gray-800 text-base font-medium">
                     <span className="text-base text-gray-600">[{(pendingStatus || property.status).replace(/^./, (c) => c.toUpperCase())}]</span>
                     <span>Change status</span>
-                    <Radio size={15} />
                   </div>
                   <select
                     value={pendingStatus || property.status}
@@ -1907,6 +1918,12 @@ export default function PropertyDetailsPage() {
             propertyType: 'propertyType' in property ? property.propertyType : undefined
           }
         }}
+      />
+
+      {/* Login Popup */}
+      <LoginPopup
+        isOpen={isLoginPopupOpen}
+        onClose={() => setIsLoginPopupOpen(false)}
       />
 
       {/* Info Modal - Admin Only */}

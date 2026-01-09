@@ -210,7 +210,7 @@ export default function StaffPortalPage() {
           {/* Floating Action Button - Mobile/Tablet Only */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="xl:hidden fixed top-[58%] -translate-y-1/2 right-6 w-14 h-14 bg-purple-500 text-white rounded-full shadow-lg hover:bg-purple-600 transition-all duration-200 flex items-center justify-center z-[60] hover:scale-110"
+            className="xl:hidden fixed top-[58%] -translate-y-1/2 right-6 w-14 h-14 bg-purple-500 text-white rounded-full shadow-lg hover:bg-purple-600 transition-all duration-200 flex items-center justify-center z-40 hover:scale-110"
             title="Staff Menu"
           >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -220,7 +220,7 @@ export default function StaffPortalPage() {
           {isMenuOpen && (
             <>
               <div
-                className="xl:hidden fixed top-[58%] -translate-y-[55px] right-24 bg-white border border-gray-200 rounded-xl shadow-2xl z-[70] min-w-[200px] overflow-hidden"
+                className="xl:hidden fixed top-[58%] -translate-y-[55px] right-24 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 min-w-[200px] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="p-2">
@@ -247,7 +247,7 @@ export default function StaffPortalPage() {
                 </div>
               </div>
               <div
-                className="xl:hidden fixed inset-0 z-[65]"
+                className="xl:hidden fixed inset-0 z-40"
                 onClick={() => setIsMenuOpen(false)}
               />
             </>
@@ -309,7 +309,7 @@ export default function StaffPortalPage() {
           {/* Floating Action Button - Mobile/Tablet Only */}
           <button
             onClick={() => setIsMenuOpen(!isMenuOpen)}
-            className="xl:hidden fixed top-[58%] -translate-y-1/2 right-6 w-14 h-14 bg-purple-500 text-white rounded-full shadow-lg hover:bg-purple-600 transition-all duration-200 flex items-center justify-center z-[60] hover:scale-110"
+            className="xl:hidden fixed top-[58%] -translate-y-1/2 right-6 w-14 h-14 bg-purple-500 text-white rounded-full shadow-lg hover:bg-purple-600 transition-all duration-200 flex items-center justify-center z-40 hover:scale-110"
             title="Staff Menu"
           >
             {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -319,7 +319,7 @@ export default function StaffPortalPage() {
           {isMenuOpen && (
             <>
               <div
-                className="xl:hidden fixed top-[58%] -translate-y-[55px] right-24 bg-white border border-gray-200 rounded-xl shadow-2xl z-[70] min-w-[200px] overflow-hidden"
+                className="xl:hidden fixed top-[58%] -translate-y-[55px] right-24 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 min-w-[200px] overflow-hidden"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="p-2">
@@ -346,7 +346,7 @@ export default function StaffPortalPage() {
                 </div>
               </div>
               <div
-                className="xl:hidden fixed inset-0 z-[65]"
+                className="xl:hidden fixed inset-0 z-40"
                 onClick={() => setIsMenuOpen(false)}
               />
             </>
@@ -394,7 +394,7 @@ export default function StaffPortalPage() {
         {/* Floating Action Button - Mobile/Tablet Only */}
         <button
           onClick={() => setIsMenuOpen(!isMenuOpen)}
-          className="xl:hidden fixed top-[58%] -translate-y-1/2 right-6 w-14 h-14 bg-purple-500 text-white rounded-full shadow-lg hover:bg-purple-600 transition-all duration-200 flex items-center justify-center z-[60] hover:scale-110"
+          className="xl:hidden fixed top-[58%] -translate-y-1/2 right-6 w-14 h-14 bg-purple-500 text-white rounded-full shadow-lg hover:bg-purple-600 transition-all duration-200 flex items-center justify-center z-40 hover:scale-110"
           title="Staff Menu"
         >
           {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -404,7 +404,7 @@ export default function StaffPortalPage() {
         {isMenuOpen && (
           <>
             <div
-              className="xl:hidden fixed top-[58%] -translate-y-[55px] right-24 bg-white border border-gray-200 rounded-xl shadow-2xl z-[70] min-w-[200px] overflow-hidden"
+              className="xl:hidden fixed top-[58%] -translate-y-[55px] right-24 bg-white border border-gray-200 rounded-xl shadow-2xl z-50 min-w-[200px] overflow-hidden"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-2">
@@ -439,7 +439,7 @@ export default function StaffPortalPage() {
               </div>
             </div>
             <div
-              className="xl:hidden fixed inset-0 z-[65]"
+              className="xl:hidden fixed inset-0 z-40"
               onClick={() => setIsMenuOpen(false)}
             />
           </>

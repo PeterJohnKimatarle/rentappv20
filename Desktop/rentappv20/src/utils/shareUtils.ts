@@ -116,9 +116,9 @@ export class ShareManager {
     // Use property title if available, otherwise generate from type
     const title = property.title || `${propertyTypeLabel} in ${property.location}`;
     
-    // Build share text in the new format: Hi..! + Check out this amazing property + title (line break) + location
+    // Build share text in the new format: Hi..! + Check out this property from Rentapp + title (line break) + location
     // URL is not included in text - let each app handle the URL separately
-    const text = `Hi..!\n\nCheck out this amazing property\n\n${title}\n${property.location}`;
+    const text = `Hi..!\n\nCheck out this property from Rentapp\n\n${title}\n${property.location}`;
     
     return {
       title: title,

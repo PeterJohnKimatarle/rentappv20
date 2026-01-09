@@ -164,10 +164,11 @@ interface PropertyCardProps {
   isRemovedBookmark?: boolean;
   showNotesButton?: boolean;
   showClosedButton?: boolean;
+  onLoginRequired?: () => void;
 }
 
-export default function PropertyCard({ property, onBookmarkClick, showMinusIcon = false, hideBookmark = false, showEditImageIcon = false, onEditImageClick, onStatusChange, onEditClick, onManageStart, isActiveProperty = false, showBookmarkConfirmation = true, onApplyStagedChanges, stagedImageCount, renderAfterUpdated, isRemovedBookmark = false, showNotesButton = false, showClosedButton = false }: PropertyCardProps) {
-  const { user } = useAuth();
+export default function PropertyCard({ property, onBookmarkClick, showMinusIcon = false, hideBookmark = false, showEditImageIcon = false, onEditImageClick, onStatusChange, onEditClick, onManageStart, isActiveProperty = false, showBookmarkConfirmation = true, onApplyStagedChanges, stagedImageCount, renderAfterUpdated, isRemovedBookmark = false, showNotesButton = false, showClosedButton = false, onLoginRequired }: PropertyCardProps) {
+  const { user, isAuthenticated } = useAuth();
   const userId = user?.id;
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -510,7 +511,11 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
     } else if (!showBookmarkConfirmation) {
       // Directly add/remove bookmark without confirmation
       if (!userId) {
-        alert('Please log in to save bookmarks.');
+        if (onLoginRequired) {
+          onLoginRequired();
+        } else {
+          alert('Please login to save this property.');
+        }
         return;
       }
       if (bookmarked) {
@@ -533,7 +538,11 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
   const handleSaveProperty = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!userId) {
-      alert('Please log in to save bookmarks.');
+      if (onLoginRequired) {
+        onLoginRequired();
+      } else {
+        alert('Please login to save this property.');
+      }
       setShowBookmarkPopup(false);
       return;
     }
@@ -906,6 +915,15 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
+                      // Only allow logged-in users to book
+                      if (!isAuthenticated) {
+                        if (onLoginRequired) {
+                          onLoginRequired();
+                        } else {
+                          alert('Please login to book this property.');
+                        }
+                        return;
+                      }
                       markPropertyAsViewed();
                       setBookingModalType('book');
                       setShowBookingModal(true);
@@ -929,6 +947,15 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                     onClick={(e) => {
                       e.stopPropagation();
                       e.preventDefault();
+                      // Only allow logged-in users to confirm status
+                      if (!isAuthenticated) {
+                        if (onLoginRequired) {
+                          onLoginRequired();
+                        } else {
+                          alert('Please login to confirm status of this property.');
+                        }
+                        return;
+                      }
                       markPropertyAsViewed();
                       setBookingModalType('status');
                       setShowBookingModal(true);
@@ -1018,14 +1045,30 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                     setPendingImages(false);
                     setPendingDetails(false);
                   }}
-                  className="flex-1 flex items-center justify-center gap-2 text-white px-4 py-2 rounded-lg text-base font-medium transition-colors"
-                  style={{ backgroundColor: 'rgba(59, 130, 246, 0.9)', maxWidth: '250px' }}
-                  onMouseEnter={(e: React.MouseEvent) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(59, 130, 246, 1)'}
-                  onMouseLeave={(e: React.MouseEvent) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(59, 130, 246, 0.9)'}
+                  className="flex-1 flex items-center justify-center gap-2 text-white px-4 py-2 rounded-lg text-base font-medium"
+                  style={{ 
+                    backgroundColor: 'rgba(59, 130, 246, 0.9)', 
+                    maxWidth: '250px',
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                    msUserSelect: 'none',
+                    userSelect: 'none',
+                    WebkitTapHighlightColor: 'transparent',
+                    outline: 'none',
+                    touchAction: 'manipulation'
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                  }}
                   title="Edit this property"
                 >
                   <Pencil size={18} className="flex-shrink-0 text-white" />
-                  <span>Edit this property</span>
+                  <span style={{ userSelect: 'none' }}>Edit this property</span>
                 </button>
               </div>
             )}
@@ -1177,7 +1220,6 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                     <div className="pointer-events-none absolute inset-0 flex items-center justify-center gap-2 text-gray-800 text-base font-medium">
                       <span className="text-base text-gray-600">[{(pendingStatus || property.status).replace(/^./, (c) => c.toUpperCase())}]</span>
                       <span>Change status</span>
-                      <Radio size={15} />
                     </div>
                     <select
                       value={pendingStatus || property.status}
@@ -1205,8 +1247,8 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                   className="w-full bg-white/20 hover:bg-white/30 text-white text-base px-4 py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
                   style={{ border: '1px solid #eab308' }}
                 >
-                  Change images
                   <Image size={15} />
+                  Change images
                 </button>
               )}
               {onEditClick && (

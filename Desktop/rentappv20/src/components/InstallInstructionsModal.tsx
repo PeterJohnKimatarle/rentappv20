@@ -93,7 +93,7 @@ export default function InstallInstructionsModal({ isOpen, onClose }: InstallIns
 
             <div className="text-center pt-4">
               <p className="text-sm text-gray-500">
-                Rentapp will appear as an app icon on your home screen after installation.
+                Rentapp will appear as an app icon on your home screen or app drawer after installation.
               </p>
             </div>
           </div>

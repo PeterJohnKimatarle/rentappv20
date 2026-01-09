@@ -958,20 +958,22 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
             <div className="bg-blue-500 rounded-lg p-2 sm:p-3 mb-2 max-w-[calc(26rem-4.5px)] xl:max-w-[calc(28rem-4.5px)] mx-auto">
             <div className="grid grid-cols-2 gap-2">
               {[
-                'Wi-Fi',
-                'Parking',
-                'Security',
-                'Water Supply',
-                'Electricity',
-                'Air Conditioning',
-                'Furnished',
-                'Kitchen',
+                'A/C',
                 'Balcony',
-                'Garden',
-                'Swimming Pool',
-                'Gym',
                 'Elevator',
-                'Pet Friendly'
+                'Electricity',
+                'Fenced',
+                'Furnished',
+                'Garden',
+                'Generator',
+                'Gym',
+                'Kitchen',
+                'Parking',
+                'Pet Friendly',
+                'Security',
+                'Swimming Pool',
+                'Water Supply',
+                'Wi-Fi'
               ].map((amenity) => (
                 <label
                   key={amenity}

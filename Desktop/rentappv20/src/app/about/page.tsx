@@ -2,6 +2,7 @@
 
 import Layout from '@/components/Layout';
 import { Users, Heart, Shield, Globe } from 'lucide-react';
+import Link from 'next/link';
 
 export default function AboutPage() {
   const teamMembers = [
@@ -122,18 +123,20 @@ export default function AboutPage() {
               Join thousands of satisfied customers who have transformed their property rental experience with Rentapp.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <a
+              <Link
                 href="/"
+                prefetch={true}
                 className="bg-white text-blue-600 px-8 py-3 rounded-lg font-semibold hover:bg-gray-100 transition-colors duration-200"
               >
                 Browse Properties
-              </a>
-              <a
+              </Link>
+              <Link
                 href="/contact"
+                prefetch={true}
                 className="border-2 border-white text-white px-8 py-3 rounded-lg font-semibold hover:bg-white hover:text-blue-600 transition-colors duration-200"
               >
                 Contact Us
-              </a>
+              </Link>
             </div>
           </div>
         </div>

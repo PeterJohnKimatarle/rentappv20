@@ -48,22 +48,24 @@ const wardsByRegion = {
   'other': ['Other']
 };
 
-// Common amenities list
+// Common amenities list (alphabetically sorted)
 const commonAmenities = [
-  'Wi-Fi',
-  'Parking',
-  'Security',
-  'Water Supply',
-  'Electricity',
-  'Air Conditioning',
-  'Furnished',
-  'Kitchen',
+  'A/C',
   'Balcony',
-  'Garden',
-  'Swimming Pool',
-  'Gym',
   'Elevator',
-  'Pet Friendly'
+  'Electricity',
+  'Fenced',
+  'Furnished',
+  'Garden',
+  'Generator',
+  'Gym',
+  'Kitchen',
+  'Parking',
+  'Pet Friendly',
+  'Security',
+  'Swimming Pool',
+  'Water Supply',
+  'Wi-Fi'
 ];
 
 // Property interface
