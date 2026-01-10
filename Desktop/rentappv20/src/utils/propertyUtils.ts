@@ -113,6 +113,11 @@ export const convertFormDataToDisplayProperty = (formData: PropertyFormData): Di
   ].filter(Boolean);
   const location = locationParts.join(', ');
 
+  // Parse area from either 'area' or 'squareFootage' field (handle both for backward compatibility)
+  // Area might be stored as a string with commas from toLocaleString(), so remove commas before parsing
+  const areaString = formData.area || formData.squareFootage || '0';
+  const areaValue = parseInt(String(areaString).replace(/,/g, '')) || 0;
+
   return {
     id: formData.id,
     title: title,
@@ -122,7 +127,7 @@ export const convertFormDataToDisplayProperty = (formData: PropertyFormData): Di
     images: formData.images,
     bedrooms: bedrooms,
     bathrooms: bathrooms,
-    area: parseInt(formData.squareFootage || '0') || 0,
+    area: areaValue,
     plan: formData.paymentPlan as '3+' | '6+' | '12+' | 'flexible',
     pricingUnit: formData.pricingUnit || 'month',
     updatedAt: formData.updatedAt || formData.createdAt,

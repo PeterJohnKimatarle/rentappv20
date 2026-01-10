@@ -631,6 +631,13 @@ export default function PropertyDetailsPage() {
                 {property.status === 'available' ? 'Available' : 'Occupied'}
               </span>
             </div>
+            
+            {/* Area Display - Below Status Badge */}
+            {property.area > 0 && (
+              <div className="absolute top-[2.75rem] left-2 px-3 xl:px-4 py-0.5 xl:py-1 rounded-lg text-sm font-semibold border-2 border-black bg-white text-black z-20 flex items-center justify-center">
+                {property.area.toLocaleString()} sqm
+              </div>
+            )}
 
             {/* Share Icon */}
             <div 
