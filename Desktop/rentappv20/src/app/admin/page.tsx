@@ -42,15 +42,41 @@ function DeleteConfirmPopup({
   userName: string;
   userType: 'staff' | 'user';
 }) {
+  const timerRef = useRef<number | null>(null);
+  const onCancelRef = useRef(onCancel);
+
+  // Keep the ref updated with the latest callback
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      onCancel();
+    onCancelRef.current = onCancel;
+  }, [onCancel]);
+
+  useEffect(() => {
+    // Set timer to auto-close after 60 seconds
+    timerRef.current = window.setTimeout(() => {
+      onCancelRef.current();
     }, 60000);
 
     return () => {
-      clearTimeout(timer);
+      if (timerRef.current) {
+        clearTimeout(timerRef.current);
+        timerRef.current = null;
+      }
     };
-  }, [onCancel]);
+  }, []); // Empty dependency array - only run once when component mounts
+
+  const handleCancel = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    onCancel();
+  };
+
+  const handleConfirm = () => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+    }
+    onConfirm();
+  };
 
   return (
     <div 
@@ -61,7 +87,7 @@ function DeleteConfirmPopup({
         const modal = target.closest('.bg-white.rounded-xl');
         // Close if clicking outside the modal
         if (!modal) {
-          onCancel();
+          handleCancel();
         }
       }}
       onTouchEnd={(e) => {
@@ -69,7 +95,7 @@ function DeleteConfirmPopup({
         const modal = target.closest('.bg-white.rounded-xl');
         // Close if touching outside the modal
         if (!modal) {
-          onCancel();
+          handleCancel();
         }
       }}
     >
@@ -90,14 +116,14 @@ function DeleteConfirmPopup({
         <div className="flex gap-3">
           <button
             type="button"
-            onClick={onConfirm}
+            onClick={handleConfirm}
               className="flex-1 px-4 py-3 bg-red-500 hover:bg-red-600 text-white rounded-lg font-medium transition-colors"
           >
             Yes
           </button>
           <button
             type="button"
-            onClick={onCancel}
+            onClick={handleCancel}
               className="flex-1 px-4 py-3 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors"
           >
             No
@@ -150,8 +176,16 @@ export default function AdminPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__adminCurrentView = currentView;
+      // Set current filters based on active view
+      if (currentView === 'staff') {
+        (window as any).__adminCurrentFilters = staffSearchFilters;
+      } else if (currentView === 'users') {
+        (window as any).__adminCurrentFilters = userSearchFilters;
+      } else {
+        (window as any).__adminCurrentFilters = null;
+      }
     }
-  }, [currentView]);
+  }, [currentView, staffSearchFilters, userSearchFilters]);
 
   // Filter staff members based on search filters
   const filteredStaff = useMemo(() => {
@@ -642,16 +676,6 @@ export default function AdminPage() {
               [{staffSearchFilters ? `${filteredStaff.length}/${staffMembers.length}` : staffMembers.length}]
             </p>
             <span className="text-xl text-gray-600">online [{staffMembers.filter(s => onlineUserIds.has(s.id)).length}]</span>
-            {staffSearchFilters && (
-              <button
-                onClick={() => {
-                  setStaffSearchFilters(null);
-                }}
-                className="text-sm px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-black rounded font-medium transition-colors"
-              >
-                Clear filters
-              </button>
-            )}
           </div>
 
           {message && (
@@ -872,16 +896,6 @@ export default function AdminPage() {
               [{userSearchFilters ? `${filteredUsers.length}/${allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length}` : allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length}]
             </p>
             <span className="text-xl text-gray-600">online [{getOnlineUserCount()}]</span>
-            {userSearchFilters && (
-              <button
-                onClick={() => {
-                  setUserSearchFilters(null);
-                }}
-                className="text-sm px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-black rounded font-medium transition-colors"
-              >
-                Clear filters
-              </button>
-            )}
           </div>
 
           {message && (

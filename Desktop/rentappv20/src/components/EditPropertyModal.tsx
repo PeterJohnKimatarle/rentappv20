@@ -741,7 +741,6 @@ export default function EditPropertyModal({ isOpen, onClose, property, onDelete,
                         }}
                         className="absolute inset-0 w-fit h-full opacity-0 cursor-pointer"
                       >
-                        <option value="" className="text-gray-800">---</option>
                         <option value="area-sqm" className="text-gray-800">Area (Sqm)</option>
                         <option value="area-acre" className="text-gray-800">Area (Acres)</option>
                       </select>

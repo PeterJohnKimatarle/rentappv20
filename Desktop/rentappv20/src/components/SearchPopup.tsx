@@ -57,6 +57,7 @@ interface SearchPopupProps {
   searchBarPosition?: { top: number; left: number; width: number } | null;
   mode?: 'property' | 'user'; // Default is 'property'
   onUserSearch?: (filters: UserSearchFilters) => void; // Callback for user search
+  currentUserFilters?: UserSearchFilters | null; // Current active user search filters for this view
 }
 
 // Helper function to initialize state from filters (synchronous)
@@ -86,7 +87,7 @@ const initializeStateFromFilters = (filters: {
   };
 };
 
-export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode = 'property', onUserSearch }: SearchPopupProps) {
+export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode = 'property', onUserSearch, currentUserFilters }: SearchPopupProps) {
   const pathname = usePathname();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -285,19 +286,63 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
   const [userName, setUserName] = useState('');
   const [userEmail, setUserEmail] = useState('');
   const [userPhone, setUserPhone] = useState('');
+
+  // Track previous filters to detect view changes
+  const prevFiltersRef = useRef(currentUserFilters);
+  const prevIsOpenRef = useRef(isOpen);
+
+  // Initialize user search fields with current active filters when modal opens (only on open, not on filter changes)
+  useLayoutEffect(() => {
+    // Only initialize when modal transitions from closed to open
+    if (isOpen && !prevIsOpenRef.current && isUserMode) {
+      // Read filters directly from window to get most up-to-date values and prevent flash
+      let filtersToUse = currentUserFilters;
+      if (typeof window !== 'undefined') {
+        if (pathname === '/admin') {
+          filtersToUse = (window as any).__adminCurrentFilters || null;
+        } else if (pathname === '/staff') {
+          filtersToUse = (window as any).__staffCurrentFilters || null;
+        }
+      }
+      
+      if (filtersToUse) {
+        setUserName(filtersToUse.name || '');
+        setUserEmail(filtersToUse.email || '');
+        setUserPhone(filtersToUse.phone || '');
+      } else {
+        // Clear fields if no active filters for this view
+        setUserName('');
+        setUserEmail('');
+        setUserPhone('');
+      }
+    }
+    
+    prevIsOpenRef.current = isOpen;
+    prevFiltersRef.current = currentUserFilters;
+  }, [isOpen, isUserMode, currentUserFilters, pathname]);
+
   
-  // Set max height constraint when modal opens (content can fit naturally up to this limit)
+  // Set fixed height when modal opens (before Advanced is expanded) - only for property mode
   useLayoutEffect(() => {
     if (isOpen && modalContainerRef.current) {
       // Calculate positioning (same logic as in render)
       const isDesktop = typeof window !== 'undefined' && window.innerWidth >= 1280;
       const shouldPositionBelow = isDesktop && searchBarPosition;
       
-      // Set only maxHeight - container will fit content up to this limit, then scroll
-      const maxHeight = shouldPositionBelow ? 'calc(100vh - 80px)' : '80vh';
-      modalContainerRef.current.style.maxHeight = maxHeight;
+      if (isUserMode) {
+        // User mode: use auto height with max constraint (original behavior)
+        const maxHeight = shouldPositionBelow ? 'calc(100vh - 80px)' : '90vh';
+        modalContainerRef.current.style.height = 'auto';
+        modalContainerRef.current.style.maxHeight = maxHeight;
+      } else {
+        // Property mode: use fixed height for collapsed state (before Advanced expands)
+        const fixedHeight = shouldPositionBelow ? 'calc(100vh - 80px)' : '75vh';
+        const maxHeight = shouldPositionBelow ? 'calc(100vh - 80px)' : '80vh';
+        modalContainerRef.current.style.height = fixedHeight;
+        modalContainerRef.current.style.maxHeight = maxHeight;
+      }
     }
-  }, [isOpen, searchBarPosition]);
+  }, [isOpen, searchBarPosition, isUserMode]);
   
   // Touch event handlers for swipe gestures - using refs for performance (like menu modal)
   const touchStartRef = useRef<{ x: number; y: number } | null>(null);
@@ -569,8 +614,8 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
            pointerEvents: 'auto',
            display: 'flex',
            flexDirection: 'column',
-           maxHeight: shouldPositionBelow ? 'calc(100vh - 80px)' : '80vh',
-           height: 'auto',
+           maxHeight: shouldPositionBelow ? 'calc(100vh - 80px)' : (isUserMode ? '90vh' : '80vh'),
+           height: shouldPositionBelow ? 'calc(100vh - 80px)' : (isUserMode ? 'auto' : '75vh'),
            boxSizing: 'border-box',
            overflow: 'hidden',
            ...(shouldPositionBelow && searchBarPosition ? {
@@ -584,7 +629,7 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
         onClick={(e: React.MouseEvent) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-center mb-3 mt-0 w-full relative flex-shrink-0">
+        <div className="flex items-center justify-center mb-2 mt-0 w-full relative flex-shrink-0">
           <h1 className="text-2xl sm:text-[1.7rem] font-bold text-white">
             {getSearchHeading()}
           </h1>
@@ -592,7 +637,7 @@ export default function SearchPopup({ isOpen, onClose, searchBarPosition, mode =
 
         {/* Search Form - Stacked Vertically with Scroll when needed */}
         <div 
-          className="space-y-3 mb-5 overflow-x-hidden overflow-y-auto flex-1 min-h-0 hide-scrollbar"
+          className={`space-y-3 ${isUserMode ? 'mb-5' : 'mb-3'} overflow-x-hidden overflow-y-auto flex-1 min-h-0 hide-scrollbar`}
           style={{ 
             overflowX: 'hidden',
             overflowY: 'auto',

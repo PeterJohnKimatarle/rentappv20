@@ -113,10 +113,10 @@ export default function AppInfoModal({ isOpen, onClose }: AppInfoModalProps) {
               </p>
               <div className="flex justify-center items-center gap-4 mt-4">
                 <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline">
-                  Privacy Policy
+                  Terms & Conditions
                 </a>
                 <a href="#" className="text-sm text-blue-600 hover:text-blue-800 underline">
-                  Terms & Conditions
+                  Privacy Policy
                 </a>
               </div>
             </div>

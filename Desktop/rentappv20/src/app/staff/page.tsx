@@ -137,8 +137,14 @@ export default function StaffPortalPage() {
   useEffect(() => {
     if (typeof window !== 'undefined') {
       (window as any).__staffCurrentView = currentView;
+      // Set current filters based on active view
+      if (currentView === 'users') {
+        (window as any).__staffCurrentFilters = userSearchFilters;
+      } else {
+        (window as any).__staffCurrentFilters = null;
+      }
     }
-  }, [currentView]);
+  }, [currentView, userSearchFilters]);
 
   // Filter users based on search filters
   const filteredUsers = useMemo(() => {
@@ -554,16 +560,6 @@ export default function StaffPortalPage() {
                 [{userSearchFilters ? `${filteredUsers.length}/${allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length}` : allUsers.filter(u => u.role !== 'admin' && u.role !== 'staff').length}]
               </p>
               <span className="text-xl text-gray-600">online [{onlineUserIds.size}]</span>
-              {userSearchFilters && (
-                <button
-                  onClick={() => {
-                    setUserSearchFilters(null);
-                  }}
-                  className="text-sm px-2 py-1 bg-yellow-500 hover:bg-yellow-600 text-black rounded font-medium transition-colors"
-                >
-                  Clear filters
-                </button>
-              )}
             </div>
 
             {filteredUsers.length === 0 ? (

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, ZoomOut } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 
@@ -25,6 +25,22 @@ export default function ImageLightbox({
   const [preloadedImages, setPreloadedImages] = useState<Set<number>>(new Set());
   const preloadedImagesRef = useRef<Set<number>>(new Set());
   const router = useRouter();
+  
+  // Zoom and pan state - simpler approach
+  const [scale, setScale] = useState(1);
+  const [translateX, setTranslateX] = useState(0);
+  const [translateY, setTranslateY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
+  const imageRef = useRef<HTMLImageElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  
+  // Reset zoom when image changes
+  useEffect(() => {
+    setScale(1);
+    setTranslateX(0);
+    setTranslateY(0);
+  }, [currentIndex]);
 
   const goToPrevious = useCallback(() => {
     const newIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
@@ -105,38 +121,106 @@ export default function ImageLightbox({
   // Check if current image is preloaded
   const isCurrentImagePreloaded = preloadedImages.has(currentIndex);
 
-  // Touch gesture handlers for mobile
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  // Touch gesture handlers for mobile - simpler approach
+  const [touchStart, setTouchStart] = useState<{ x: number; y: number; time: number } | null>(null);
+  const [touchEnd, setTouchEnd] = useState<{ x: number; y: number } | null>(null);
+  const [pinchStart, setPinchStart] = useState<{ distance: number; scale: number } | null>(null);
 
   const minSwipeDistance = 50;
 
+  const getDistance = (touch1: React.Touch, touch2: React.Touch) => {
+    return Math.hypot(touch2.clientX - touch1.clientX, touch2.clientY - touch1.clientY);
+  };
+
   const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
+    if (e.touches.length === 1) {
+      // Single touch - prepare for swipe or pan
+      const touch = e.touches[0];
+      setTouchStart({ x: touch.clientX, y: touch.clientY, time: Date.now() });
+      setTouchEnd(null);
+      if (scale > 1) {
+        // If zoomed, prepare for panning
+        setIsDragging(true);
+        setDragStart({ x: touch.clientX - translateX, y: touch.clientY - translateY });
+      }
+    } else if (e.touches.length === 2) {
+      // Two touches - pinch to zoom
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      setPinchStart({ distance, scale });
+    }
   };
 
   const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
+    if (e.touches.length === 1 && isDragging && scale > 1) {
+      // Panning when zoomed - allow free panning to fill screen
+      e.preventDefault();
+      const touch = e.touches[0];
+      setTranslateX(touch.clientX - dragStart.x);
+      setTranslateY(touch.clientY - dragStart.y);
+    } else if (e.touches.length === 1 && touchStart) {
+      // Track for swipe
+      const touch = e.touches[0];
+      setTouchEnd({ x: touch.clientX, y: touch.clientY });
+    } else if (e.touches.length === 2 && pinchStart) {
+      // Pinch zoom - allow up to 5x for full screen feel
+      e.preventDefault();
+      const distance = getDistance(e.touches[0], e.touches[1]);
+      const scaleChange = distance / pinchStart.distance;
+      const newScale = Math.min(Math.max(pinchStart.scale * scaleChange, 1), 5);
+      setScale(newScale);
+      if (newScale === 1) {
+        setTranslateX(0);
+        setTranslateY(0);
+      }
+    }
   };
 
   const onTouchEnd = () => {
-    if (!touchStart || !touchEnd) return;
-    
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+    if (touchStart && touchEnd && scale === 1) {
+      // Single touch swipe - only when not zoomed
+      const distance = touchStart.x - touchEnd.x;
+      const isLeftSwipe = distance > minSwipeDistance;
+      const isRightSwipe = distance < -minSwipeDistance;
 
-    if (isLeftSwipe) {
-      goToNext();
+      if (isLeftSwipe) {
+        goToNext();
+      } else if (isRightSwipe) {
+        goToPrevious();
+      }
     }
-    if (isRightSwipe) {
-      goToPrevious();
+    setTouchStart(null);
+    setTouchEnd(null);
+    setPinchStart(null);
+    setIsDragging(false);
+  };
+
+  // Mouse drag for panning when zoomed
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (scale > 1) {
+      e.preventDefault();
+      setIsDragging(true);
+      setDragStart({ x: e.clientX - translateX, y: e.clientY - translateY });
     }
   };
 
-  // Click/tap gesture handlers
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isDragging && scale > 1) {
+      e.preventDefault();
+      // Allow free panning to fill screen - no strict boundaries
+      setTranslateX(e.clientX - dragStart.x);
+      setTranslateY(e.clientY - dragStart.y);
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  // Click/tap gesture handlers - only navigate when not zoomed
   const handleImageClick = (e: React.MouseEvent) => {
+    // Don't navigate if zoomed in
+    if (scale > 1) return;
+    
     const rect = e.currentTarget.getBoundingClientRect();
     const clickX = e.clientX - rect.left;
     const imageWidth = rect.width;
@@ -172,26 +256,56 @@ export default function ImageLightbox({
         </>
       )}
 
-             {/* Image */}
-             <div 
-               className="relative max-w-4xl max-h-[90vh] mx-4 cursor-pointer"
-               onTouchStart={onTouchStart}
-               onTouchMove={onTouchMove}
-               onTouchEnd={onTouchEnd}
-               onClick={handleImageClick}
-             >
-               {/* Close Button - Inside Image at Top Edge */}
-                <button
-                  onClick={onClose}
-                  className="absolute top-2 right-2 text-white transition-colors z-20 rounded-lg p-2 cursor-pointer"
-                  style={{ 
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)'
-                  }}
-                  onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(239, 68, 68, 1)'}
-                  onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(0, 0, 0, 0.5)'}
-                >
-                 <X size={24} />
-               </button>
+      {/* Image */}
+      <div 
+        ref={containerRef}
+        className="relative max-w-4xl max-h-[90vh] mx-4"
+        style={{ 
+          cursor: scale > 1 ? (isDragging ? 'grabbing' : 'grab') : 'pointer',
+          overflow: scale > 1 ? 'visible' : 'hidden'
+        }}
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+        onMouseDown={handleMouseDown}
+        onMouseMove={handleMouseMove}
+        onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseUp}
+        onClick={handleImageClick}
+      >
+        {/* Close Button - Absolute position relative to container */}
+        <button
+          onClick={onClose}
+          className="absolute top-2 right-2 text-white transition-colors z-20 rounded-lg p-2 cursor-pointer"
+          style={{ 
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
+          onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(239, 68, 68, 1)'}
+          onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(0, 0, 0, 0.5)'}
+        >
+          <X size={24} />
+        </button>
+        
+        {/* Reset Zoom Button - Absolute position relative to container, only show when zoomed */}
+        {scale > 1 && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              setScale(1);
+              setTranslateX(0);
+              setTranslateY(0);
+            }}
+            className="absolute top-14 right-2 text-white transition-colors z-20 rounded-lg p-2 cursor-pointer"
+            style={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.5)'
+            }}
+            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(59, 130, 246, 1)'}
+            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(0, 0, 0, 0.5)'}
+            title="Reset zoom"
+          >
+            <ZoomOut size={24} />
+          </button>
+        )}
 
 
                {isLoading && !isCurrentImagePreloaded && (
@@ -238,14 +352,18 @@ export default function ImageLightbox({
                  </div>
                ) : (
                  <img
+                   ref={imageRef}
                    src={images[currentIndex]}
                    alt={`Property image ${currentIndex + 1}`}
-                   className="max-w-full max-h-full object-contain"
+                   className="max-w-full max-h-full object-contain select-none"
                    onLoad={handleImageLoad}
                    onError={handleImageError}
+                   draggable={false}
                    style={{ 
                      opacity: isCurrentImagePreloaded ? 1 : 0.7,
-                     transition: 'opacity 0.3s ease-in-out'
+                     transition: scale === 1 ? 'opacity 0.3s ease-in-out, transform 0.2s ease-out' : 'opacity 0.3s ease-in-out',
+                     transform: `translate(${translateX}px, ${translateY}px) scale(${scale})`,
+                     transformOrigin: 'center center'
                    }}
                  />
                )}

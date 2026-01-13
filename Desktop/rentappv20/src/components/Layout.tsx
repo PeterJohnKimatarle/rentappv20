@@ -795,6 +795,12 @@ export default function Layout({ children, totalCount, filteredCount, hasActiveF
               })
             : undefined
         }
+        currentUserFilters={
+          (pathname === '/admin' && typeof window !== 'undefined' && ((window as any).__adminCurrentView === 'users' || (window as any).__adminCurrentView === 'staff')) ||
+          (pathname === '/staff' && typeof window !== 'undefined' && (window as any).__staffCurrentView === 'users')
+            ? (typeof window !== 'undefined' ? ((window as any).__adminCurrentFilters || (window as any).__staffCurrentFilters || null) : null)
+            : undefined
+        }
       />
 
       {/* Login Popup */}
