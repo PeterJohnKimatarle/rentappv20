@@ -112,6 +112,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const parsedUser = JSON.parse(savedUser);
             // Validate that the parsed user has required fields
             if (parsedUser && typeof parsedUser === 'object' && parsedUser.id && parsedUser.email) {
+              const isAdmin = parsedUser.role === 'admin';
+              
               // Verify user still exists in stored users list and validate their data
               const storedUsers = loadStoredUsers();
               
@@ -127,13 +129,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                       setUser(validatedUser);
                       localStorage.setItem(SESSION_KEY, JSON.stringify(validatedUser));
                     } else {
-                      console.warn('User no longer exists in stored users after retry, clearing session');
-                      localStorage.removeItem(SESSION_KEY);
-                      setUser(null);
+                      // User not found after retry - for admin, keep session; for others, clear
+                      if (isAdmin) {
+                        console.warn('Admin user not found in stored users after retry, keeping session as fallback');
+                        setUser(parsedUser);
+                      } else {
+                        console.warn('User no longer exists in stored users after retry, clearing session');
+                        localStorage.removeItem(SESSION_KEY);
+                        setUser(null);
+                      }
                     }
                   } else {
                     // If still empty after retry, it's likely a real issue - but for admin, keep session as fallback
-                    if (parsedUser.role === 'admin') {
+                    if (isAdmin) {
                       console.warn('Stored users list is empty after retry, keeping admin session as fallback');
                       setUser(parsedUser);
                     } else {
@@ -158,10 +166,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 // Update localStorage with validated user data
                 localStorage.setItem(SESSION_KEY, JSON.stringify(validatedUser));
               } else {
-                // User no longer exists in stored users, clear session
-                console.warn('User no longer exists in stored users, clearing session');
-                localStorage.removeItem(SESSION_KEY);
-                setUser(null);
+                // User not found in stored users list
+                // For admin users, be more lenient - keep session even if not found (might be a sync issue)
+                if (isAdmin) {
+                  console.warn('Admin user not found in stored users list, keeping session as fallback');
+                  setUser(parsedUser);
+                  // Don't clear the session for admin - they might have been added differently
+                } else {
+                  // For non-admin users, clear session if not found
+                  console.warn('User no longer exists in stored users, clearing session');
+                  localStorage.removeItem(SESSION_KEY);
+                  setUser(null);
+                }
               }
             } else {
               console.warn('Invalid user data in localStorage, clearing session');
