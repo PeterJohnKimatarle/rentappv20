@@ -111,7 +111,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const parsedUser = JSON.parse(savedUser);
           // Validate that the parsed user has required fields
           if (parsedUser && typeof parsedUser === 'object' && parsedUser.id && parsedUser.email) {
-            setUser(parsedUser);
+            // Verify user still exists in stored users list and validate their data
+            const storedUsers = loadStoredUsers();
+            const existingUser = storedUsers.find((u) => u.id === parsedUser.id);
+            
+            if (existingUser) {
+              // User exists, sanitize and update with latest data from stored users
+              const validatedUser = sanitizeStoredUser(existingUser);
+              setUser(validatedUser);
+              // Update localStorage with validated user data
+              localStorage.setItem(SESSION_KEY, JSON.stringify(validatedUser));
+            } else {
+              // User no longer exists in stored users, clear session
+              console.warn('User no longer exists in stored users, clearing session');
+              localStorage.removeItem(SESSION_KEY);
+              setUser(null);
+            }
           } else {
             console.warn('Invalid user data in localStorage, clearing session');
             localStorage.removeItem(SESSION_KEY);
