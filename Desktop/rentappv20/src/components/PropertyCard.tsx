@@ -1234,8 +1234,8 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                 </button>
               </div>
             )}
-            {/* Private Notes Button - For regular users and admins (not staff) on my-properties */}
-            {hideBookmark && user && userId && user.role !== 'staff' && (
+            {/* Private Notes Button - For regular users only (not staff or admin) on my-properties */}
+            {hideBookmark && user && userId && user.role !== 'staff' && user.role !== 'admin' && (
               <div className="mt-auto flex items-center" onClick={(e) => e.stopPropagation()}>
                 <button
                   onClick={(e) => {
@@ -1627,8 +1627,8 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
         </div>
       )}
 
-      {/* Private Notes Modal - For regular users and admins (not staff) */}
-      {showPrivateNotesModal && user && userId && user.role !== 'staff' && (
+      {/* Private Notes Modal - For regular users only (not staff or admin) */}
+      {showPrivateNotesModal && user && userId && user.role !== 'staff' && user.role !== 'admin' && (
         <div
           className="fixed inset-0 flex items-center justify-center z-50"
           style={{

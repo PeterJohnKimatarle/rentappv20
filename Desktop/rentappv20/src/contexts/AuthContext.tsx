@@ -104,41 +104,80 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   // Check for existing session on mount
   useEffect(() => {
-    try {
-      const savedUser = localStorage.getItem(SESSION_KEY);
-      if (savedUser) {
-        try {
-          const parsedUser = JSON.parse(savedUser);
-          // Validate that the parsed user has required fields
-          if (parsedUser && typeof parsedUser === 'object' && parsedUser.id && parsedUser.email) {
-            // Verify user still exists in stored users list and validate their data
-            const storedUsers = loadStoredUsers();
-            const existingUser = storedUsers.find((u) => u.id === parsedUser.id);
-            
-            if (existingUser) {
-              // User exists, sanitize and update with latest data from stored users
-              const validatedUser = sanitizeStoredUser(existingUser);
-              setUser(validatedUser);
-              // Update localStorage with validated user data
-              localStorage.setItem(SESSION_KEY, JSON.stringify(validatedUser));
+    const validateAndRestoreSession = () => {
+      try {
+        const savedUser = localStorage.getItem(SESSION_KEY);
+        if (savedUser) {
+          try {
+            const parsedUser = JSON.parse(savedUser);
+            // Validate that the parsed user has required fields
+            if (parsedUser && typeof parsedUser === 'object' && parsedUser.id && parsedUser.email) {
+              // Verify user still exists in stored users list and validate their data
+              const storedUsers = loadStoredUsers();
+              
+              // If stored users list is empty, retry once after a short delay (handles timing issues)
+              if (storedUsers.length === 0) {
+                // Retry once after 100ms in case of timing issues
+                setTimeout(() => {
+                  const retryStoredUsers = loadStoredUsers();
+                  if (retryStoredUsers.length > 0) {
+                    const existingUser = retryStoredUsers.find((u) => u.id === parsedUser.id);
+                    if (existingUser) {
+                      const validatedUser = sanitizeStoredUser(existingUser);
+                      setUser(validatedUser);
+                      localStorage.setItem(SESSION_KEY, JSON.stringify(validatedUser));
+                    } else {
+                      console.warn('User no longer exists in stored users after retry, clearing session');
+                      localStorage.removeItem(SESSION_KEY);
+                      setUser(null);
+                    }
+                  } else {
+                    // If still empty after retry, it's likely a real issue - but for admin, keep session as fallback
+                    if (parsedUser.role === 'admin') {
+                      console.warn('Stored users list is empty after retry, keeping admin session as fallback');
+                      setUser(parsedUser);
+                    } else {
+                      console.warn('Stored users list is empty after retry, clearing session');
+                      localStorage.removeItem(SESSION_KEY);
+                      setUser(null);
+                    }
+                  }
+                }, 100);
+                // Set user immediately to prevent flash of logout
+                setUser(parsedUser);
+                return;
+              }
+              
+              // Stored users list exists, validate the user
+              const existingUser = storedUsers.find((u) => u.id === parsedUser.id);
+              
+              if (existingUser) {
+                // User exists, sanitize and update with latest data from stored users
+                const validatedUser = sanitizeStoredUser(existingUser);
+                setUser(validatedUser);
+                // Update localStorage with validated user data
+                localStorage.setItem(SESSION_KEY, JSON.stringify(validatedUser));
+              } else {
+                // User no longer exists in stored users, clear session
+                console.warn('User no longer exists in stored users, clearing session');
+                localStorage.removeItem(SESSION_KEY);
+                setUser(null);
+              }
             } else {
-              // User no longer exists in stored users, clear session
-              console.warn('User no longer exists in stored users, clearing session');
+              console.warn('Invalid user data in localStorage, clearing session');
               localStorage.removeItem(SESSION_KEY);
-              setUser(null);
             }
-          } else {
-            console.warn('Invalid user data in localStorage, clearing session');
+          } catch (parseError) {
+            console.error('Error parsing saved user:', parseError);
             localStorage.removeItem(SESSION_KEY);
           }
-        } catch (parseError) {
-          console.error('Error parsing saved user:', parseError);
-          localStorage.removeItem(SESSION_KEY);
         }
+      } catch (storageError) {
+        console.error('Error accessing localStorage:', storageError);
       }
-    } catch (storageError) {
-      console.error('Error accessing localStorage:', storageError);
-    }
+    };
+
+    validateAndRestoreSession();
 
     // Check if impersonating on mount
     try {
