@@ -139,7 +139,9 @@ function DeleteConfirmPopup({
 export default function AdminPage() {
   const { isAuthenticated, user, getAllStaff, getAllUsers, approveStaff, disapproveStaff, deleteUser, loginAs, isLoading, isImpersonating } = useAuth();
   const router = useRouter();
-  const wasAuthenticatedRef = useRef(isAuthenticated);
+  // Initialize to false - only track if user was authenticated AFTER initial load completes
+  const wasAuthenticatedRef = useRef(false);
+  const hasInitializedRef = useRef(false);
   const isAdmin = user?.role === 'admin';
   const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
   const [currentView, setCurrentView] = useState<ViewType>('staff');
@@ -262,15 +264,27 @@ export default function AdminPage() {
   }, [isAdmin]);
 
   useEffect(() => {
-    // Detect logout transition
-    if (wasAuthenticatedRef.current && !isAuthenticated && !isLoading) {
+    // Only start tracking authentication state AFTER initial load completes
+    // This prevents false logout detection during SSR/hydration
+    if (!hasInitializedRef.current && !isLoading) {
+      hasInitializedRef.current = true;
+      wasAuthenticatedRef.current = isAuthenticated;
+      return;
+    }
+    
+    // Only detect logout transition if we've already initialized and user was authenticated
+    if (hasInitializedRef.current && wasAuthenticatedRef.current && !isAuthenticated && !isLoading) {
       setIsLoggingOut(true);
       // Redirect to homepage after brief delay
       setTimeout(() => {
         router.push('/');
       }, 100);
     }
-    wasAuthenticatedRef.current = isAuthenticated;
+    
+    // Update ref only after initialization
+    if (hasInitializedRef.current) {
+      wasAuthenticatedRef.current = isAuthenticated;
+    }
   }, [isAuthenticated, isLoading, router]);
 
   useEffect(() => {

@@ -175,8 +175,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                       setUser(null);
                     }
                   }
+                  // Set loading to false after async validation completes
+                  setIsLoading(false);
                 }, 100);
-                // User already set synchronously, just validate async
+                // User already set synchronously, keep loading true until async validation completes
                 return;
               }
               
@@ -220,6 +222,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } catch (storageError) {
         console.error('Error accessing localStorage:', storageError);
       }
+      
+      // Set loading to false after validation completes (synchronously or asynchronously)
+      setIsLoading(false);
     };
 
     validateAndRestoreSession();
@@ -231,8 +236,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Error checking impersonation status:', impersonateError);
       setIsImpersonating(false);
     }
-
-    setIsLoading(false);
   }, []);
 
   const login = async (email: string, password: string): Promise<AuthResult> => {
