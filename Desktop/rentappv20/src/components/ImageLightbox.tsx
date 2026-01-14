@@ -11,6 +11,7 @@ interface ImageLightboxProps {
   onClose: () => void;
   onImageChange: (index: number) => void;
   onViewDetails?: () => void;
+  rounded?: boolean;
 }
 
 export default function ImageLightbox({ 
@@ -18,7 +19,8 @@ export default function ImageLightbox({
   currentIndex, 
   onClose, 
   onImageChange,
-  onViewDetails
+  onViewDetails,
+  rounded = false
 }: ImageLightboxProps) {
   const [isLoading, setIsLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
@@ -178,14 +180,30 @@ export default function ImageLightbox({
   const onTouchEnd = () => {
     if (touchStart && touchEnd && scale === 1) {
       // Single touch swipe - only when not zoomed
-      const distance = touchStart.x - touchEnd.x;
-      const isLeftSwipe = distance > minSwipeDistance;
-      const isRightSwipe = distance < -minSwipeDistance;
+      const distanceX = touchStart.x - touchEnd.x;
+      const distanceY = touchEnd.y - touchStart.y;
+      const absDistanceX = Math.abs(distanceX);
+      const absDistanceY = Math.abs(distanceY);
+      
+      if (rounded) {
+        // For profile images: swipe in any direction to dismiss
+        if (absDistanceX > minSwipeDistance || absDistanceY > minSwipeDistance) {
+          onClose();
+        }
+      } else {
+        // For property images: horizontal swipe for navigation only
+        if (absDistanceX > absDistanceY) {
+          // Horizontal swipe for navigation
+          const isLeftSwipe = distanceX > minSwipeDistance;
+          const isRightSwipe = distanceX < -minSwipeDistance;
 
-      if (isLeftSwipe) {
-        goToNext();
-      } else if (isRightSwipe) {
-        goToPrevious();
+          if (isLeftSwipe) {
+            goToNext();
+          } else if (isRightSwipe) {
+            goToPrevious();
+          }
+        }
+        // Vertical swipes do nothing for property images - use X button to close
       }
     }
     setTouchStart(null);
@@ -236,7 +254,11 @@ export default function ImageLightbox({
   };
 
   return (
-         <div className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center" style={{ touchAction: 'none', minHeight: '100vh', height: '100%' }} onClick={(e) => e.stopPropagation()}>
+         <div 
+           className="fixed inset-0 bg-black bg-opacity-90 z-50 flex items-center justify-center" 
+           style={{ touchAction: 'none', minHeight: '100vh', height: '100%' }} 
+           onClick={(e) => e.stopPropagation()}
+         >
 
       {/* Navigation Arrows - Desktop Only */}
       {images.length > 1 && (
@@ -273,18 +295,20 @@ export default function ImageLightbox({
         onMouseLeave={handleMouseUp}
         onClick={handleImageClick}
       >
-        {/* Close Button - Absolute position relative to container */}
-        <button
-          onClick={onClose}
-          className="absolute top-2 right-2 text-white transition-colors z-20 rounded-lg p-2 cursor-pointer"
-          style={{ 
-            backgroundColor: 'rgba(0, 0, 0, 0.5)'
-          }}
-          onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(239, 68, 68, 1)'}
-          onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(0, 0, 0, 0.5)'}
-        >
-          <X size={24} />
-        </button>
+        {/* Close Button - Only show for property images (not profile images) */}
+        {!rounded && (
+          <button
+            onClick={onClose}
+            className="absolute top-2 right-2 text-white transition-colors z-20 rounded-lg p-2 cursor-pointer"
+            style={{ 
+              backgroundColor: 'rgba(0, 0, 0, 0.5)'
+            }}
+            onMouseEnter={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(239, 68, 68, 1)'}
+            onMouseLeave={(e) => (e.target as HTMLButtonElement).style.backgroundColor = 'rgba(0, 0, 0, 0.5)'}
+          >
+            <X size={24} />
+          </button>
+        )}
         
         {/* Reset Zoom Button - Absolute position relative to container, only show when zoomed */}
         {scale > 1 && (
@@ -355,7 +379,7 @@ export default function ImageLightbox({
                    ref={imageRef}
                    src={images[currentIndex]}
                    alt={`Property image ${currentIndex + 1}`}
-                   className="max-w-full max-h-full object-contain select-none"
+                   className={`max-w-full max-h-full object-contain select-none ${rounded ? 'rounded-full' : ''}`}
                    onLoad={handleImageLoad}
                    onError={handleImageError}
                    draggable={false}
@@ -368,10 +392,12 @@ export default function ImageLightbox({
                  />
                )}
         
-               {/* Image Counter */}
-               <div className="absolute bottom-1 left-1 lg:bottom-3 lg:left-1 text-white text-sm px-3 py-2 rounded-lg shadow-lg flex items-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
-                 <span className="font-medium">{images.length === 0 ? '0 / 0' : `${currentIndex + 1} / ${images.length}`}</span>
-               </div>
+               {/* Image Counter - Only show when there are multiple images */}
+               {images.length > 1 && (
+                 <div className="absolute bottom-1 left-1 lg:bottom-3 lg:left-1 text-white text-sm px-3 py-2 rounded-lg shadow-lg flex items-center" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+                   <span className="font-medium">{`${currentIndex + 1} / ${images.length}`}</span>
+                 </div>
+               )}
       </div>
 
     </div>

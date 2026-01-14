@@ -57,9 +57,10 @@ export default function PropertyDetailsPage() {
   const [userNotesKeyboardInset, setUserNotesKeyboardInset] = useState(0);
   const [hasUserNotes, setHasUserNotes] = useState(false);
   const [isLoginPopupOpen, setIsLoginPopupOpen] = useState(false);
+  const [showUploaderImagePreview, setShowUploaderImagePreview] = useState(false);
 
   // Prevent body scrolling when booking modal is open
-  usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal || showUploaderProfileModal || showUserNotesModal || isLoginPopupOpen);
+  usePreventScroll(showBookingModal || showSharePopup || showThreeDotsModal || showNotesModal || showInfoModal || showUpdatedDateModal || showStatusConfirmationModal || showConfirmByModal || showStatusUpdateModal || showAllAmenitiesModal || showDescriptionModal || showUploaderProfileModal || showUserNotesModal || isLoginPopupOpen || showUploaderImagePreview);
 
   useEffect(() => {
     const propertyId = params.id as string;
@@ -636,7 +637,7 @@ export default function PropertyDetailsPage() {
             {property.area > 0 && (() => {
               const areaUnit = 'areaUnit' in property ? property.areaUnit || 'sqm' : 'sqm';
               const areaValue = typeof property.area === 'number' ? property.area : parseInt(String(property.area || '0').replace(/,/g, '')) || 0;
-              const unit = areaUnit === 'acre' ? 'Acres' : 'sqm';
+              const unit = areaUnit === 'acre' ? (areaValue === 1 ? 'Acre' : 'Acres') : 'sqm';
               return (
                 <div className="absolute top-[2.75rem] left-2 px-3 xl:px-4 py-0.5 xl:py-1 rounded-lg text-sm font-semibold border-2 border-black bg-white text-black z-20 flex items-center justify-center">
                   {areaValue.toLocaleString()} {unit}
@@ -2158,7 +2159,13 @@ export default function PropertyDetailsPage() {
                     <img
                       src={uploaderUser.profileImage}
                       alt={uploaderUser.name}
-                      className="w-32 h-32 rounded-full object-cover border-4 border-blue-500"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 cursor-pointer"
+                      onClick={() => {
+                        setShowUploaderImagePreview(true);
+                      }}
+                      onTouchEnd={() => {
+                        setShowUploaderImagePreview(true);
+                      }}
                     />
                   ) : (
                     <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center border-4 border-blue-500">
@@ -2364,6 +2371,16 @@ export default function PropertyDetailsPage() {
         </div>
       )}
 
+      {/* Uploader Profile Image Preview */}
+      {showUploaderImagePreview && uploaderUser?.profileImage && (
+        <ImageLightbox
+          images={[uploaderUser.profileImage]}
+          currentIndex={0}
+          onClose={() => setShowUploaderImagePreview(false)}
+          onImageChange={() => {}}
+          rounded={true}
+        />
+      )}
     </Layout>
   );
 }

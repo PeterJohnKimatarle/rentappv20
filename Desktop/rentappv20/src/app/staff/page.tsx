@@ -12,6 +12,7 @@ import { getFollowUpPropertiesByStaff, getClosedPropertiesByStaff, getUserNotes,
 import Image from 'next/image';
 import { getActiveSessions } from '@/utils/sessionTracking';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
+import ImageLightbox from '@/components/ImageLightbox';
 
 type ViewType = 'closed' | 'followup' | 'users';
 
@@ -49,12 +50,14 @@ export default function StaffPortalPage() {
   const [isUserNotesEditable, setIsUserNotesEditable] = useState(false);
   const [userNotesKeyboardInset, setUserNotesKeyboardInset] = useState(0);
   const [hasUserNotes, setHasUserNotes] = useState(false);
+  const [showProfileImagePreview, setShowProfileImagePreview] = useState(false);
+  const [previewProfileImage, setPreviewProfileImage] = useState<string>('');
 
   const isStaff = user?.role === 'staff';
   const isApproved = user?.isApproved === true;
 
   // Prevent body scrolling when profile modal or user notes modal is open
-  usePreventScroll(showProfileModal || showUserNotesModal || isMenuOpen);
+  usePreventScroll(showProfileModal || showUserNotesModal || isMenuOpen || showProfileImagePreview);
 
   useEffect(() => {
     // Load data when approved staff
@@ -586,7 +589,17 @@ export default function StaffPortalPage() {
                             alt={userItem.firstName || userItem.name || 'User'}
                             width={64}
                             height={64}
-                            className="w-16 h-16 rounded-full object-cover border-2 border-gray-300"
+                            className="w-16 h-16 rounded-full object-cover border-2 border-gray-300 cursor-pointer"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setPreviewProfileImage(userItem.profileImage || '');
+                              setShowProfileImagePreview(true);
+                            }}
+                            onTouchEnd={(e) => {
+                              e.stopPropagation();
+                              setPreviewProfileImage(userItem.profileImage || '');
+                              setShowProfileImagePreview(true);
+                            }}
                           />
                         ) : (
                           <div className="w-16 h-16 bg-gray-200 rounded-full flex items-center justify-center border-2 border-gray-300">
@@ -890,7 +903,15 @@ export default function StaffPortalPage() {
                     <img
                       src={selectedProfileUser.profileImage}
                       alt={selectedProfileUser.name}
-                      className="w-32 h-32 rounded-full object-cover border-4 border-blue-500"
+                      className="w-32 h-32 rounded-full object-cover border-4 border-blue-500 cursor-pointer"
+                      onClick={() => {
+                        setPreviewProfileImage(selectedProfileUser.profileImage || '');
+                        setShowProfileImagePreview(true);
+                      }}
+                      onTouchEnd={() => {
+                        setPreviewProfileImage(selectedProfileUser.profileImage || '');
+                        setShowProfileImagePreview(true);
+                      }}
                     />
                   ) : (
                     <div className="w-32 h-32 bg-gray-200 rounded-full flex items-center justify-center border-4 border-blue-500">
@@ -1094,6 +1115,17 @@ export default function StaffPortalPage() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Profile Image Preview */}
+      {showProfileImagePreview && previewProfileImage && (
+        <ImageLightbox
+          images={[previewProfileImage]}
+          currentIndex={0}
+          onClose={() => setShowProfileImagePreview(false)}
+          onImageChange={() => {}}
+          rounded={true}
+        />
       )}
     </Layout>
   );

@@ -1,9 +1,9 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { MapPin, Image, Clock, Heart, Pencil, Radio, Share2, ChevronLeft, ChevronRight, Phone, MessageCircle, FileText, Check, MoreVertical } from 'lucide-react';
+import { MapPin, Image, Clock, Heart, Pencil, Radio, Share2, ChevronLeft, ChevronRight, Phone, MessageCircle, FileText, Check, MoreVertical, Info } from 'lucide-react';
 import { Property } from '@/data/properties';
-import { DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getPropertyStatus, getStaffNotes, saveStaffNotes } from '@/utils/propertyUtils';
+import { DisplayProperty, isBookmarked, addBookmark, removeBookmark, addToFollowUp, removeFromFollowUp, addToClosed, removeFromClosed, isPropertyInFollowUpAnyUser, isPropertyClosedAnyUser, getPropertyStatus, getStaffNotes, saveStaffNotes, getPrivateNotes, savePrivateNotes } from '@/utils/propertyUtils';
 import { useAuth } from '@/contexts/AuthContext';
 import ImageLightbox from './ImageLightbox';
 import SharePopup from './SharePopup';
@@ -217,6 +217,13 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
   const [notes, setNotes] = useState('');
   const [hasNotes, setHasNotes] = useState(false);
   const [isNotesEditable, setIsNotesEditable] = useState(false);
+  const [privateNotes, setPrivateNotes] = useState('');
+  const [hasPrivateNotes, setHasPrivateNotes] = useState(false);
+  const [isPrivateNotesEditable, setIsPrivateNotesEditable] = useState(false);
+  const [showPrivateNotesModal, setShowPrivateNotesModal] = useState(false);
+  const privateNotesTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const [privateNotesKeyboardInset, setPrivateNotesKeyboardInset] = useState(0);
+  const [showPrivateNotesInfo, setShowPrivateNotesInfo] = useState(false);
   const [bookingModalType, setBookingModalType] = useState<'book' | 'status'>('book');
   const [pendingStatus, setPendingStatus] = useState<'available' | 'occupied' | ''>(property.status);
   const [pendingImages, setPendingImages] = useState(false);
@@ -383,6 +390,43 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
     }
   }, [property.id, userId, user?.role, user?.isApproved]);
 
+  // Check if property has private notes (for regular users and admins)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && userId && hideBookmark && user && user.role !== 'staff') {
+      const checkPrivateNotes = () => {
+        // For admins, check all users' private notes for this property
+        if (user.role === 'admin') {
+          // Check if any user has notes for this property
+          let hasAnyNotes = false;
+          for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith('rentapp_notes_') && key.endsWith(`_${property.id}`) && !key.startsWith('rentapp_notes_staff_')) {
+              const notes = localStorage.getItem(key) || '';
+              if (notes.trim().length > 0) {
+                hasAnyNotes = true;
+                break;
+              }
+            }
+          }
+          setHasPrivateNotes(hasAnyNotes);
+        } else {
+          // For regular users, check their own notes
+          const notes = getPrivateNotes(property.id, userId);
+          setHasPrivateNotes(notes.trim().length > 0);
+        }
+      };
+      checkPrivateNotes();
+
+      // Listen for storage changes
+      window.addEventListener('storage', checkPrivateNotes);
+      window.addEventListener('privateNotesChanged', checkPrivateNotes);
+      return () => {
+        window.removeEventListener('storage', checkPrivateNotes);
+        window.removeEventListener('privateNotesChanged', checkPrivateNotes);
+      };
+    }
+  }, [property.id, userId, hideBookmark, user]);
+
   // Detect keyboard visibility and move modal up by 100px when keyboard is visible
   useEffect(() => {
     if (!showNotesModal) {
@@ -407,8 +451,31 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
     };
   }, [showNotesModal]);
 
+  // Detect keyboard visibility for private notes modal
+  useEffect(() => {
+    if (!showPrivateNotesModal) {
+      setPrivateNotesKeyboardInset(0);
+      return;
+    }
+    const vv = typeof window !== 'undefined'
+      ? (window as Window & { visualViewport?: VisualViewport }).visualViewport
+      : undefined;
+    if (!vv) return;
+    const handleResize = () => {
+      const covered = Math.max(0, window.innerHeight - vv.height);
+      setPrivateNotesKeyboardInset(covered > 0 ? 100 : 0);
+    };
+    handleResize();
+    vv.addEventListener('resize', handleResize);
+    vv.addEventListener('scroll', handleResize);
+    return () => {
+      vv.removeEventListener('resize', handleResize);
+      vv.removeEventListener('scroll', handleResize);
+    };
+  }, [showPrivateNotesModal]);
+
   // Prevent body scrolling when popup is open
-  usePreventScroll(showBookmarkPopup || showRemoveBookmarkPopup || showSharePopup || showActionPopup || showBookingModal || showStatusModal || showThreeDotsModal || showNotesModal || showInfoModal || showAllAmenitiesModal);
+  usePreventScroll(showBookmarkPopup || showRemoveBookmarkPopup || showSharePopup || showActionPopup || showBookingModal || showStatusModal || showThreeDotsModal || showNotesModal || showPrivateNotesModal || showPrivateNotesInfo || showInfoModal || showAllAmenitiesModal);
 
   // Check bookmark status and listen for changes
   useEffect(() => {
@@ -757,7 +824,7 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
             {property.area > 0 && (() => {
               const areaUnit = 'areaUnit' in property ? property.areaUnit || 'sqm' : 'sqm';
               const areaValue = typeof property.area === 'number' ? property.area : parseInt(String(property.area || '0').replace(/,/g, '')) || 0;
-              const unit = areaUnit === 'acre' ? 'Acres' : 'sqm';
+              const unit = areaUnit === 'acre' ? (areaValue === 1 ? 'Acre' : 'Acres') : 'sqm';
               return (
                 <div className="absolute top-[1.75rem] xl:top-[2rem] left-1 px-1 py-0 xl:px-1 xl:py-0 rounded text-xs xl:text-sm font-medium xl:font-semibold border-[1.5px] border-black bg-white text-gray-900 z-10 flex items-center justify-center">
                   {areaValue.toLocaleString()} {unit}
@@ -765,13 +832,13 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
               );
             })()}
             {/* Image Counter - Mobile: Always visible with icon + count */}
-            <div className="flex xl:hidden absolute bottom-1 left-1 px-2 py-1 rounded-md flex items-center space-x-0.5 text-white text-sm" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+            <div className="flex xl:hidden absolute bottom-1 left-1 px-2 py-1.5 rounded-lg flex items-center space-x-0.5 text-white text-base font-medium" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
               {/* eslint-disable-next-line jsx-a11y/alt-text */}
               <Image size={16} className="w-4 h-4" />
               <span>{property.images.length}</span>
             </div>
             {/* Image Counter - Desktop: With hover behavior */}
-            <div className="hidden xl:flex absolute bottom-0.5 left-1 lg:bottom-2.5 lg:left-1 text-white text-sm xl:text-base px-3 py-2 xl:px-3.5 xl:py-2 rounded-lg shadow-lg items-center space-x-0.5 xl:space-x-1" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+            <div className="hidden xl:flex absolute bottom-2.5 left-1 lg:bottom-5 lg:left-1 text-white text-base font-medium px-3 py-1.5 xl:px-3.5 xl:py-1.5 rounded-lg shadow-lg items-center space-x-0.5 xl:space-x-1" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
               {!isArrowHovered && (
                 <>
                   {/* eslint-disable-next-line jsx-a11y/alt-text */}
@@ -785,6 +852,85 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                 }
               </span>
             </div>
+            
+            {/* Edit Button - Bottom right corner of image (for admin/staff on my-properties) */}
+            {hideBookmark && (onStatusChange || onEditClick || onEditImageClick) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (onManageStart) {
+                    onManageStart();
+                  }
+                  setShowActionPopup(true);
+                  setPendingStatus(property.status);
+                  setPendingImages(false);
+                  setPendingDetails(false);
+                }}
+                className="flex xl:hidden absolute bottom-1 right-1 px-2 py-1.5 rounded-lg flex items-center space-x-0.5 text-white text-base font-medium z-20"
+                style={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                  outline: 'none',
+                  touchAction: 'manipulation'
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                title="Edit property"
+              >
+                <Pencil size={16} className="w-4 h-4" />
+                <span style={{ userSelect: 'none' }}>Edit</span>
+              </button>
+            )}
+            {/* Edit Button - Desktop version */}
+            {hideBookmark && (onStatusChange || onEditClick || onEditImageClick) && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                  if (onManageStart) {
+                    onManageStart();
+                  }
+                  setShowActionPopup(true);
+                  setPendingStatus(property.status);
+                  setPendingImages(false);
+                  setPendingDetails(false);
+                }}
+                className="hidden xl:flex absolute bottom-2.5 right-1 lg:bottom-5 lg:right-1 text-white text-base font-medium px-3 py-1.5 xl:px-3.5 xl:py-1.5 rounded-lg shadow-lg items-center space-x-0.5 xl:space-x-1 z-20"
+                style={{ 
+                  backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  WebkitTapHighlightColor: 'transparent',
+                  outline: 'none',
+                  touchAction: 'manipulation'
+                }}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                onTouchStart={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
+                title="Edit property"
+              >
+                <Pencil size={16} className="w-4 h-4 xl:w-4.5 xl:h-4.5" />
+                <span className="font-medium" style={{ userSelect: 'none' }}>Edit</span>
+              </button>
+            )}
             
             {showEditImageIcon && onEditImageClick && null}
             
@@ -839,7 +985,7 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
           <Link 
             href={`/property/${property.id}${searchParams.toString() ? `?${searchParams.toString()}` : ''}`}
             prefetch={true}
-            className="flex-1 pt-0 pb-1.5 px-1.5 sm:pt-0 sm:pb-3 sm:px-3 md:pt-0 md:pb-4 md:px-4 lg:pt-0 lg:pb-6 lg:px-6 min-w-0 overflow-hidden cursor-pointer"
+            className={`flex-1 pt-0 pb-1 px-1.5 sm:pt-0 sm:pb-2.5 sm:px-3 md:pt-0 md:pb-3 md:px-4 lg:pt-0 lg:pb-5 lg:px-6 min-w-0 overflow-hidden cursor-pointer ${hideBookmark ? 'flex flex-col' : ''}`}
           >
             <div className="flex flex-col mb-2 min-w-0">
               <div className="flex items-center gap-2 min-w-0">
@@ -1042,44 +1188,96 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
                 </button>
               </div>
             )}
-            {hideBookmark && (onStatusChange || onEditClick || onEditImageClick) && (
-              <div className="mt-2 flex gap-2" onClick={(e) => e.stopPropagation()}>
+            {hideBookmark && user && ((user.role === 'staff' && user.isApproved) || user.role === 'admin') && (onStatusChange || onEditClick || onEditImageClick) && (
+              <div className="mt-auto flex items-center" onClick={(e) => e.stopPropagation()}>
+                {/* Status Button - Shows current property status */}
                 <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    e.preventDefault();
-                    if (onManageStart) {
-                      onManageStart();
-                    }
-                    setShowActionPopup(true);
-                    setPendingStatus(property.status);
-                    setPendingImages(false);
-                    setPendingDetails(false);
-                  }}
-                  className="flex-1 flex items-center justify-center gap-2 text-white px-4 py-2 rounded-lg text-base font-medium"
+                  className="flex-1 flex items-center justify-center gap-2 text-white px-4 py-2 rounded-lg text-base font-medium select-none relative"
                   style={{ 
-                    backgroundColor: 'rgba(59, 130, 246, 0.9)', 
+                    backgroundColor: (showNotesButton || isPinged)
+                      ? 'rgba(59, 130, 246, 0.9)' 
+                      : (showClosedButton || isClosed)
+                        ? 'rgba(34, 197, 94, 0.9)' 
+                        : 'rgba(107, 114, 128, 0.9)',
                     maxWidth: '250px',
+                    WebkitTapHighlightColor: 'transparent',
                     WebkitUserSelect: 'none',
                     MozUserSelect: 'none',
                     msUserSelect: 'none',
                     userSelect: 'none',
-                    WebkitTapHighlightColor: 'transparent',
                     outline: 'none',
                     touchAction: 'manipulation'
                   }}
                   onMouseDown={(e) => {
                     e.preventDefault();
-                    e.stopPropagation();
                   }}
                   onTouchStart={(e) => {
                     e.preventDefault();
-                    e.stopPropagation();
                   }}
-                  title="Edit this property"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    markPropertyAsViewed();
+                    setShowThreeDotsModal(true);
+                  }}
                 >
-                  <Pencil size={18} className="flex-shrink-0 text-white" />
-                  <span style={{ userSelect: 'none' }}>Edit this property</span>
+                  {hasNotes && (
+                    <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                  )}
+                  {(showClosedButton || isClosed) ? (
+                    <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>Closed</span>
+                  ) : (showNotesButton || isPinged) ? (
+                    <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>Followed</span>
+                  ) : (
+                    <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>Default</span>
+                  )}
+                </button>
+              </div>
+            )}
+            {/* Private Notes Button - For regular users and admins (not staff) on my-properties */}
+            {hideBookmark && user && userId && user.role !== 'staff' && (
+              <div className="mt-auto flex items-center" onClick={(e) => e.stopPropagation()}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    e.preventDefault();
+                    // Load private notes
+                    if (typeof window !== 'undefined') {
+                      if (user.role === 'admin') {
+                        // For admin, don't load into textarea - modal will show all notes
+                        setPrivateNotes('');
+                      } else {
+                        const notes = getPrivateNotes(property.id, userId);
+                        setPrivateNotes(notes);
+                      }
+                    }
+                    setIsPrivateNotesEditable(false);
+                    setShowPrivateNotesModal(true);
+                  }}
+                  className="flex-1 flex items-center justify-center gap-2 text-white px-4 py-2 rounded-lg text-base font-medium select-none relative"
+                  style={{ 
+                    backgroundColor: 'rgba(59, 130, 246, 0.9)',
+                    maxWidth: '250px',
+                    WebkitTapHighlightColor: 'transparent',
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                    msUserSelect: 'none',
+                    userSelect: 'none',
+                    outline: 'none',
+                    touchAction: 'manipulation'
+                  }}
+                  onMouseDown={(e) => {
+                    e.preventDefault();
+                  }}
+                  onTouchStart={(e) => {
+                    e.preventDefault();
+                  }}
+                >
+                  {hasPrivateNotes && (
+                    <span className="absolute left-2 w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: '#fbbf24' }}></span>
+                  )}
+                  <FileText size={18} />
+                  <span className="select-none" style={{ WebkitUserSelect: 'none', MozUserSelect: 'none', msUserSelect: 'none', userSelect: 'none' }}>Private Notes</span>
                 </button>
               </div>
             )}
@@ -1424,6 +1622,229 @@ export default function PropertyCard({ property, onBookmarkClick, showMinusIcon 
               className="w-full px-4 py-2 rounded-lg font-medium transition-colors bg-gray-300 hover:bg-gray-400 text-gray-700"
             >
               Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Private Notes Modal - For regular users and admins (not staff) */}
+      {showPrivateNotesModal && user && userId && user.role !== 'staff' && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{
+            touchAction: 'none',
+            minHeight: '100vh',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
+        >
+          <div
+            className="bg-white rounded-xl px-4 py-2 sm:px-6 sm:pt-1 sm:pb-14 md:pb-4 max-w-sm md:max-w-[414px] w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              transform: privateNotesKeyboardInset > 0 ? `translateY(-${privateNotesKeyboardInset}px)` : 'translateY(0)',
+              transition: 'transform 0.2s ease-out'
+            }}
+          >
+            <div className="flex justify-between items-center mb-3 relative pt-1">
+              <h3 className="text-xl font-semibold text-black flex-1 text-center">
+                {user.role === 'admin' ? 'Private Notes (All Users)' : 'Private Notes'}
+              </h3>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowPrivateNotesInfo(true);
+                }}
+                className="absolute right-0 p-2 text-blue-500 hover:bg-gray-300 rounded transition-all cursor-pointer"
+                title="Privacy information"
+                style={{ top: '50%', transform: 'translateY(-50%)' }}
+              >
+                <Info size={22} />
+              </button>
+            </div>
+            
+            {user.role === 'admin' ? (
+              // Admin view: Show all users' private notes (read-only)
+              <div className="w-full px-3 py-2 rounded-lg border-2 border-gray-300 bg-gray-50 text-gray-800 max-h-60 overflow-y-auto">
+                {(() => {
+                  const allNotes: Array<{ userId: string; notes: string }> = [];
+                  if (typeof window !== 'undefined') {
+                    for (let i = 0; i < localStorage.length; i++) {
+                      const key = localStorage.key(i);
+                      if (key && key.startsWith('rentapp_notes_') && key.endsWith(`_${property.id}`) && !key.startsWith('rentapp_notes_staff_')) {
+                        const match = key.match(/rentapp_notes_(.+?)_(.+)/);
+                        if (match) {
+                          const notes = localStorage.getItem(key) || '';
+                          if (notes.trim().length > 0) {
+                            allNotes.push({ userId: match[1], notes });
+                          }
+                        }
+                      }
+                    }
+                  }
+                  if (allNotes.length === 0) {
+                    return <p className="text-gray-500 text-sm">No private notes from any users.</p>;
+                  }
+                  return allNotes.map((item, index) => (
+                    <div key={index} className="mb-3 pb-3 border-b border-gray-200 last:border-b-0 last:mb-0 last:pb-0">
+                      <p className="text-xs text-gray-500 mb-1">User ID: {item.userId}</p>
+                      <p className="text-sm whitespace-pre-wrap">{item.notes}</p>
+                    </div>
+                  ));
+                })()}
+              </div>
+            ) : (
+              // Regular user view: Editable notes
+              <textarea
+                ref={privateNotesTextareaRef}
+                className={`w-full px-3 py-2 rounded-lg border-2 border-gray-300 text-gray-800 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent ${!isPrivateNotesEditable ? 'bg-gray-50 cursor-pointer' : ''}`}
+                placeholder={isPrivateNotesEditable ? "Add your private notes about this property..." : "Double-click to edit/add notes..."}
+                rows={6}
+                value={privateNotes}
+                onChange={(e) => setPrivateNotes(e.target.value)}
+                readOnly={!isPrivateNotesEditable}
+                onDoubleClick={(e) => {
+                  e.preventDefault();
+                  setIsPrivateNotesEditable(true);
+                  requestAnimationFrame(() => {
+                    setTimeout(() => {
+                      if (privateNotesTextareaRef.current) {
+                        privateNotesTextareaRef.current.removeAttribute('readonly');
+                        privateNotesTextareaRef.current.focus();
+                        const length = privateNotesTextareaRef.current.value.length;
+                        privateNotesTextareaRef.current.setSelectionRange(length, length);
+                      }
+                    }, 0);
+                  });
+                }}
+                onTouchStart={(e) => {
+                  if (!isPrivateNotesEditable) {
+                    const target = e.currentTarget;
+                    const now = Date.now();
+                    const lastTap = (target as any).lastTap || 0;
+                    
+                    if (now - lastTap < 300) {
+                      e.preventDefault();
+                      setIsPrivateNotesEditable(true);
+                      requestAnimationFrame(() => {
+                        setTimeout(() => {
+                          target.removeAttribute('readonly');
+                          target.focus();
+                          const length = target.value.length;
+                          target.setSelectionRange(length, length);
+                        }, 0);
+                      });
+                    }
+                    (target as any).lastTap = now;
+                  }
+                }}
+              />
+            )}
+
+            <div className="flex gap-2 mt-1.5">
+              {user.role !== 'admin' && (
+                <button
+                  onClick={() => {
+                    if (typeof window !== 'undefined' && userId) {
+                      savePrivateNotes(property.id, userId, privateNotes);
+                      setHasPrivateNotes(privateNotes.trim().length > 0);
+                      // Track the property when notes are edited
+                      if (onManageStart) {
+                        onManageStart();
+                      }
+                    }
+                    setIsPrivateNotesEditable(false);
+                    setShowPrivateNotesModal(false);
+                  }}
+                  className="flex-1 px-4 py-2 rounded-lg font-medium text-white select-none"
+                  style={{ 
+                    backgroundColor: 'rgba(34, 197, 94, 0.9)',
+                    WebkitTapHighlightColor: 'transparent',
+                    WebkitUserSelect: 'none',
+                    MozUserSelect: 'none',
+                    msUserSelect: 'none',
+                    userSelect: 'none',
+                    outline: 'none'
+                  }}
+                >
+                  Save
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setIsPrivateNotesEditable(false);
+                  setShowPrivateNotesModal(false);
+                  // Reset to saved notes
+                  if (typeof window !== 'undefined' && userId && user.role !== 'admin') {
+                    const savedNotes = getPrivateNotes(property.id, userId);
+                    setPrivateNotes(savedNotes);
+                  }
+                }}
+                className={`px-4 py-2 rounded-lg font-medium text-white select-none ${user.role === 'admin' ? 'w-full' : 'flex-1'}`}
+                style={{ 
+                  backgroundColor: '#ef4444',
+                  WebkitTapHighlightColor: 'transparent',
+                  WebkitUserSelect: 'none',
+                  MozUserSelect: 'none',
+                  msUserSelect: 'none',
+                  userSelect: 'none',
+                  outline: 'none'
+                }}
+              >
+                {user.role === 'admin' ? 'Close' : 'Cancel'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Private Notes Info Modal */}
+      {showPrivateNotesInfo && (
+        <div
+          className="fixed inset-0 flex items-center justify-center z-50"
+          style={{
+            touchAction: 'none',
+            minHeight: '100vh',
+            height: '100%',
+            backgroundColor: 'rgba(0, 0, 0, 0.5)'
+          }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) {
+              setShowPrivateNotesInfo(false);
+            }
+          }}
+        >
+          <div
+            className="bg-white rounded-xl px-4 py-3 sm:px-6 sm:pt-2 sm:pb-6 max-w-sm w-full mx-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex justify-center items-center mb-2">
+              <h3 className="text-xl font-semibold text-black m-0">Private Notes</h3>
+            </div>
+            <div className="mb-4 space-y-3">
+              <p className="text-gray-700 text-base leading-relaxed">
+                {user?.role === 'admin' 
+                  ? 'These private notes are only visible to the uploader of each property. As an admin, you can view all users\' private notes, but they cannot see each other\'s notes.'
+                  : 'These notes are completely private and only visible to you. No one else can see them.'}
+              </p>
+              {user?.role !== 'admin' && (
+                <div className="bg-blue-50 border-l-4 border-blue-500 p-3 rounded">
+                  <p className="text-gray-700 text-sm leading-relaxed font-medium mb-1">Why private notes are important:</p>
+                  <ul className="text-gray-700 text-sm leading-relaxed space-y-1 ml-4 list-disc">
+                    <li>Track inquiries and interactions with potential tenants</li>
+                    <li>Remember important details about your property</li>
+                    <li>Keep notes on maintenance schedules and reminders</li>
+                    <li>Document property history and updates</li>
+                    <li>Manage multiple properties more effectively</li>
+                  </ul>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={() => setShowPrivateNotesInfo(false)}
+              className="w-full px-6 py-2 bg-gray-300 hover:bg-gray-400 text-gray-700 rounded-lg font-medium transition-colors"
+            >
+              Ok, I got it
             </button>
           </div>
         </div>

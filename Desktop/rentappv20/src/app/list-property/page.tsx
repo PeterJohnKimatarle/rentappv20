@@ -792,12 +792,15 @@ export default function ListPropertyPage() {
                                value={areaUnitValue}
                                onChange={(e) => {
                                  const value = e.target.value;
-                                 setAreaUnitValue(value);
-                                 const areaUnit = value ? value.replace('area-', '') as 'sqm' | 'acre' : '';
+                                 // If empty value is selected, default back to 'area-sqm'
+                                 const finalValue = value || 'area-sqm';
+                                 setAreaUnitValue(finalValue);
+                                 const areaUnit = finalValue.replace('area-', '') as 'sqm' | 'acre';
                                  handleInputChange('areaUnit' as keyof typeof formData, areaUnit);
                                }}
                                className="absolute inset-0 w-fit h-full opacity-0 cursor-pointer"
                              >
+                               <option value="" className="text-gray-800">---</option>
                                <option value="area-sqm" className="text-gray-800">Area (Sqm)</option>
                                <option value="area-acre" className="text-gray-800">Area (Acres)</option>
                              </select>

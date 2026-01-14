@@ -145,6 +145,18 @@ export default function MyPropertiesPage() {
       }
       setIsHydrated(true);
     };
+
+    const handlePrivateNotesChanged = (event: Event) => {
+      if (userId) {
+        // Refresh properties to update sorting based on notes edit time
+        setProperties(getUserCreatedProperties(userId));
+        // Track the property if it's being edited
+        const customEvent = event as CustomEvent<{ propertyId?: string; userId?: string }>;
+        if (customEvent?.detail?.propertyId) {
+          updateActivePropertyId(customEvent.detail.propertyId);
+        }
+      }
+    };
     
     // Listen for storage changes
     window.addEventListener('storage', handleStorageChange);
@@ -158,11 +170,15 @@ export default function MyPropertiesPage() {
     // Listen for property deleted event
     window.addEventListener('propertyDeleted', handlePropertyDeleted);
 
+    // Listen for private notes changed event
+    window.addEventListener('privateNotesChanged', handlePrivateNotesChanged as EventListener);
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('propertyAdded', handlePropertyAdded);
       window.removeEventListener('propertyUpdated', handlePropertyUpdated);
       window.removeEventListener('propertyDeleted', handlePropertyDeleted);
+      window.removeEventListener('privateNotesChanged', handlePrivateNotesChanged);
     };
   }, [userId]);
 

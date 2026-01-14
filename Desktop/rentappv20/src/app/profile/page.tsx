@@ -6,6 +6,7 @@ import { useEffect, useRef, useState } from 'react';
 import { usePreventScroll } from '@/hooks/usePreventScroll';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import ImageLightbox from '@/components/ImageLightbox';
 
 export default function ProfilePage() {
   const [isEditPopupOpen, setIsEditPopupOpen] = useState(false);
@@ -18,9 +19,10 @@ export default function ProfilePage() {
   const [userType, setUserType] = useState<'member' | 'staff' | 'admin'>('member');
   const [isUserTypeExpanded, setIsUserTypeExpanded] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
+  const [showProfileImagePreview, setShowProfileImagePreview] = useState(false);
 
   // Block background scroll when popup is open
-  usePreventScroll(isEditPopupOpen || isPasswordPopupOpen || showDeleteConfirm);
+  usePreventScroll(isEditPopupOpen || isPasswordPopupOpen || showDeleteConfirm || showProfileImagePreview);
 
   // Auto-close delete confirmation modal after 60 seconds
   useEffect(() => {
@@ -440,6 +442,17 @@ export default function ProfilePage() {
                       src={userData.profileImage}
                       alt={userData.name}
                         className="w-full h-full object-cover border-2 border-blue-500"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowProfileImagePreview(true);
+                        }}
+                        onTouchEnd={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setShowProfileImagePreview(true);
+                        }}
+                        style={{ pointerEvents: 'auto' }}
                     />
                   ) : (
                       <div className="w-full h-full bg-gray-200 rounded-full flex items-center justify-center border-2 border-blue-500">
@@ -452,7 +465,7 @@ export default function ProfilePage() {
                       className="hidden"
                       onChange={(event) => handleProfileImageChange(event.target.files?.[0] ?? null)}
                     />
-                    <div className="absolute bottom-3 right-3 bg-black/60 text-white rounded-full p-1 flex items-center justify-center">
+                    <div className="absolute bottom-3 right-3 bg-black/60 text-white rounded-full p-1 flex items-center justify-center z-10">
                       {isUpdatingImage ? (
                         <span className="text-[10px] px-1">…</span>
                       ) : (
@@ -860,6 +873,16 @@ export default function ProfilePage() {
         </div>
       )}
 
+      {/* Profile Image Preview */}
+      {showProfileImagePreview && userData.profileImage && (
+        <ImageLightbox
+          images={[userData.profileImage]}
+          currentIndex={0}
+          onClose={() => setShowProfileImagePreview(false)}
+          onImageChange={() => {}}
+          rounded={true}
+        />
+      )}
     </Layout>
   );
 }

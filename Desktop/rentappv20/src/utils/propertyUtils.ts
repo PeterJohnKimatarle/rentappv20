@@ -437,11 +437,21 @@ export const getUserCreatedProperties = (ownerId?: string): DisplayProperty[] =>
       .filter(property => property.ownerId === ownerId)
       .map(convertFormDataToDisplayProperty);
     
-    // Sort by updatedAt (most recent first), fallback to createdAt if updatedAt doesn't exist
+    // Sort by most recent edit time (property updatedAt or notes lastEdited, whichever is more recent)
     return convertedProperties.sort((a, b) => {
-      const dateA = new Date(a.updatedAt || a.createdAt || '');
-      const dateB = new Date(b.updatedAt || b.createdAt || '');
-      return dateB.getTime() - dateA.getTime(); // Most recent first
+      // Get property last edit time
+      const propertyEditTimeA = new Date(a.updatedAt || a.createdAt || '').getTime();
+      const propertyEditTimeB = new Date(b.updatedAt || b.createdAt || '').getTime();
+      
+      // Get notes last edit time
+      const notesEditTimeA = getPrivateNotesLastEditTime(a.id, ownerId);
+      const notesEditTimeB = getPrivateNotesLastEditTime(b.id, ownerId);
+      
+      // Use the most recent time (property edit or notes edit)
+      const lastEditTimeA = Math.max(propertyEditTimeA, notesEditTimeA);
+      const lastEditTimeB = Math.max(propertyEditTimeB, notesEditTimeB);
+      
+      return lastEditTimeB - lastEditTimeA; // Most recent first
     });
   } catch (error) {
     console.error('Error reading user properties:', error);
@@ -847,6 +857,84 @@ export const getPropertyNotesAnyUser = (propertyId: string): string => {
   } catch (error) {
     console.error('Error getting notes across users:', error);
     return '';
+  }
+};
+
+// Get private notes for a property by a regular user (not staff/admin)
+const getPrivateNotesStorageKey = (propertyId: string, userId: string): string => {
+  return `rentapp_notes_${userId}_${propertyId}`;
+};
+
+// Get private notes for a property by a regular user
+export const getPrivateNotes = (propertyId: string, userId: string): string => {
+  if (typeof window === 'undefined') return '';
+  
+  try {
+    const key = getPrivateNotesStorageKey(propertyId, userId);
+    const data = localStorage.getItem(key);
+    if (!data) return '';
+    
+    // Check if it's the new format with timestamp
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.notes !== undefined) {
+        return parsed.notes;
+      }
+    } catch {
+      // Old format, just return the string
+      return data;
+    }
+    return '';
+  } catch (error) {
+    console.error('Error getting private notes:', error);
+    return '';
+  }
+};
+
+// Get last edit time for private notes
+export const getPrivateNotesLastEditTime = (propertyId: string, userId: string): number => {
+  if (typeof window === 'undefined') return 0;
+  
+  try {
+    const key = getPrivateNotesStorageKey(propertyId, userId);
+    const data = localStorage.getItem(key);
+    if (!data) return 0;
+    
+    // Check if it's the new format with timestamp
+    try {
+      const parsed = JSON.parse(data);
+      if (parsed.lastEdited !== undefined) {
+        return parsed.lastEdited;
+      }
+    } catch {
+      // Old format, return 0 (no timestamp)
+      return 0;
+    }
+    return 0;
+  } catch (error) {
+    console.error('Error getting private notes last edit time:', error);
+    return 0;
+  }
+};
+
+// Save private notes for a property by a regular user
+export const savePrivateNotes = (propertyId: string, userId: string, notes: string): boolean => {
+  if (typeof window === 'undefined') return false;
+  
+  try {
+    const key = getPrivateNotesStorageKey(propertyId, userId);
+    // Store notes with timestamp
+    const data = {
+      notes,
+      lastEdited: Date.now()
+    };
+    localStorage.setItem(key, JSON.stringify(data));
+    // Dispatch event to notify other components with propertyId for tracking
+    window.dispatchEvent(new CustomEvent('privateNotesChanged', { detail: { propertyId, userId } }));
+    return true;
+  } catch (error) {
+    console.error('Error saving private notes:', error);
+    return false;
   }
 };
 
