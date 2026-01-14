@@ -97,12 +97,37 @@ export const useAuth = () => {
   return context;
 };
 
+// Helper function to restore session synchronously (for SSR/hydration)
+const restoreSessionSync = (): User | null => {
+  if (typeof window === 'undefined') return null;
+  
+  try {
+    const savedUser = localStorage.getItem(SESSION_KEY);
+    if (savedUser) {
+      try {
+        const parsedUser = JSON.parse(savedUser);
+        // Validate that the parsed user has required fields
+        if (parsedUser && typeof parsedUser === 'object' && parsedUser.id && parsedUser.email) {
+          return parsedUser as User;
+        }
+      } catch (parseError) {
+        console.error('Error parsing saved user:', parseError);
+      }
+    }
+  } catch (storageError) {
+    console.error('Error accessing localStorage:', storageError);
+  }
+  
+  return null;
+};
+
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  // Initialize user state synchronously from localStorage to prevent hydration issues
+  const [user, setUser] = useState<User | null>(() => restoreSessionSync());
   const [isLoading, setIsLoading] = useState(true);
   const [isImpersonating, setIsImpersonating] = useState(false);
 
-  // Check for existing session on mount
+  // Validate and update session after mount (async validation)
   useEffect(() => {
     const validateAndRestoreSession = () => {
       try {
@@ -151,8 +176,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     }
                   }
                 }, 100);
-                // Set user immediately to prevent flash of logout
-                setUser(parsedUser);
+                // User already set synchronously, just validate async
                 return;
               }
               
@@ -182,11 +206,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             } else {
               console.warn('Invalid user data in localStorage, clearing session');
               localStorage.removeItem(SESSION_KEY);
+              setUser(null);
             }
           } catch (parseError) {
             console.error('Error parsing saved user:', parseError);
             localStorage.removeItem(SESSION_KEY);
+            setUser(null);
           }
+        } else {
+          // No saved user, ensure state is null
+          setUser(null);
         }
       } catch (storageError) {
         console.error('Error accessing localStorage:', storageError);
